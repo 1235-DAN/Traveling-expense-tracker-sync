@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅遊記帳本 - 換匯記帳</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;600&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-main: #1a1510;
+    --bg-card: #f5f0e8;
+    --bg-card2: #ede5d8;
+    --text-primary: #2a1f14;
+    --text-secondary: #7a6a57;
+    --text-on-dark: #e8e0d4;
+    --text-sec-dark: #9a8e80;
+    --income-color: #2d6b3f;
+    --expense-color: #8b3a2a;
+    --border-color: rgba(180,155,120,0.3);
+    --border-dark: rgba(255,255,255,0.07);
+    --accent: #b5813a;
+    --accent2: #7a9e6a;
+    --shadow: rgba(0,0,0,0.45);
+    --shadow-card: rgba(60,40,20,0.12);
+    --credit-color: #3d5f8a;
+    --radius: 18px;
+    --radius-sm: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 24px;
+    min-height: 100vh;
+}
+body::before {
+    content: '';
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background:
+        radial-gradient(ellipse at 15% 20%, rgba(181,129,58,0.18) 0%, transparent 45%),
+        radial-gradient(ellipse at 85% 75%, rgba(122,158,106,0.14) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 50%, rgba(90,60,30,0.25) 0%, transparent 65%);
+    z-index: -1; pointer-events: none;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+
+/* Header */
+header {
+    text-align: center; margin-bottom: 28px; padding: 48px 24px 40px;
+    background: linear-gradient(135deg, rgba(181,129,58,0.18), rgba(122,158,106,0.12));
+    border: 1px solid rgba(181,129,58,0.25);
+    border-radius: 24px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,240,232,0.06);
+    backdrop-filter: blur(20px); position: relative; overflow: hidden;
+}
+header::before {
+    content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(181,129,58,0.18), transparent 70%);
+    animation: float 8s ease-in-out infinite; pointer-events: none;
+}
+header::after {
+    content: ''; position: absolute; bottom: -60px; left: -60px; width: 260px; height: 260px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(122,158,106,0.12), transparent 70%);
+    animation: float 10s ease-in-out infinite reverse; pointer-events: none;
+}
+@keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(10px,-15px)} }
+h1 {
+    font-family: 'Crimson Pro', serif; font-size: 3.2rem; font-weight: 600;
+    background: linear-gradient(135deg, #f5f0e8, #d4a96a, #a3c491);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 10px; position: relative; z-index: 1;
+    letter-spacing: 0.04em;
+}
+.subtitle {
+    font-size: 0.95rem; color: rgba(232,224,212,0.6); font-weight: 300;
+    letter-spacing: 0.3em; text-transform: uppercase; position: relative; z-index: 1;
+}
+
+.glass {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+
+/* buttons / inputs */
+button {
+    width: 100%; padding: 13px; border: none;
+    background: linear-gradient(135deg, #b5813a, #c9973f);
+    color: white; font-size: 0.95rem;
+    font-weight: 700; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+    transition: all 0.3s ease; letter-spacing: 0.05em;
+    position: relative; overflow: hidden; border-radius: var(--radius-sm);
+    box-shadow: 0 4px 16px rgba(181,129,58,0.3);
+}
+button::before {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
+    border-radius: 50%; background: rgba(255,255,255,0.25);
+    transition: width 0.5s, height 0.5s, top 0.5s, left 0.5s;
+    transform: translate(-50%, -50%); z-index: 0;
+}
+button:hover::before { width: 300px; height: 300px; }
+button span { position: relative; z-index: 1; }
+button:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(181,129,58,0.4); }
+button.secondary { background: var(--bg-card2); color: var(--text-primary); box-shadow: none; border: 1px solid var(--border-color); }
+button.secondary:hover { box-shadow: 0 4px 16px var(--shadow-card); }
+button.danger { background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); box-shadow: none; }
+button.danger:hover { background: rgba(139,58,42,0.1); box-shadow: none; }
+button.small, button.auto { width: auto; }
+
+.form-group { margin-bottom: 18px; }
+label { display: block; margin-bottom: 7px; font-weight: 600; color: var(--text-secondary); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
+input, select {
+    width: 100%; padding: 12px 15px; border: 1px solid var(--border-color);
+    background: var(--bg-card2); color: var(--text-primary); font-size: 0.95rem;
+    font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s ease;
+    border-radius: var(--radius-sm);
+}
+input::placeholder { color: rgba(122,106,87,0.5); }
+input:focus, select:focus { outline: none; border-color: var(--accent); background: white; box-shadow: 0 0 0 3px rgba(181,129,58,0.12); }
+select option { background: var(--bg-card); color: var(--text-primary); }
+.row { display: flex; gap: 12px; }
+.row > * { flex: 1; }
+
+/* ===== Trip List Page ===== */
+#tripListPage .glass { padding: 32px; margin-bottom: 24px; }
+.trip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+.trip-card {
+    background: var(--bg-card2); border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm); padding: 22px; cursor: pointer;
+    transition: all 0.2s ease; position: relative;
+}
+.trip-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px var(--shadow-card); background: white; }
+.trip-card-name { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
+.trip-card-loc { font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 4px; }
+.trip-card-date { font-size: 0.82rem; color: var(--text-secondary); }
+.trip-card-currency { display: inline-block; margin-top: 10px; font-size: 0.75rem; padding: 4px 12px; border-radius: 20px; background: rgba(181,129,58,0.12); color: var(--accent); border: 1px solid rgba(181,129,58,0.25); font-weight: 700; }
+.trip-card-del { position: absolute; top: 14px; right: 14px; width: auto; padding: 5px 10px; font-size: 0.75rem; background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); box-shadow: none; }
+.trip-card-del:hover { background: rgba(139,58,42,0.1); box-shadow: none; transform: none; }
+.empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); font-style: italic; }
+
+/* pagination */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+.page-btn {
+    width: auto; padding: 8px 14px; border: 1px solid var(--border-color);
+    background: var(--bg-card2); color: var(--text-secondary);
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; border-radius: 8px;
+    transition: all 0.2s ease; box-shadow: none;
+}
+.page-btn::before { display: none; }
+.page-btn:hover { border-color: var(--accent); color: var(--text-primary); background: white; }
+.page-btn.active { background: linear-gradient(135deg, #b5813a, #c9973f); color: white; border-color: transparent; box-shadow: 0 2px 12px rgba(181,129,58,0.4); }
+.page-btn:disabled { opacity: 0.4; cursor: default; }
+.page-btn:disabled:hover { transform:none; box-shadow:none; border-color: var(--border-color); background: var(--bg-card2); }
+
+/* ===== Detail Page ===== */
+#detailPage { display: none; }
+.back-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.back-bar button { width: auto; }
+.trip-title { font-family: 'Crimson Pro', serif; font-size: 1.8rem; font-weight: 600; flex: 1; }
+.trip-sub { font-size: 0.85rem; color: rgba(232,224,212,0.7); }
+
+/* overview banner */
+.overview-banner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.overview-banner.credit { grid-template-columns: repeat(2, 1fr); }
+.ov-item {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm); padding: 18px 14px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    box-shadow: 0 4px 20px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.8) inset;
+}
+.ov-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+.ov-value { font-family: 'Crimson Pro', serif; font-size: 1.6rem; font-weight: 600; color: var(--text-primary); line-height: 1.1; }
+.ov-value.income-val { color: var(--income-color); }
+.ov-value.expense-val { color: var(--expense-color); }
+.ov-value.credit-val { color: var(--credit-color); }
+.ov-sub { font-size: 0.68rem; color: var(--text-secondary); }
+.ov-edit-row { display: flex; gap: 6px; margin-top: 8px; width: 100%; }
+.ov-edit-row input { flex: 1; padding: 7px 10px; font-size: 0.82rem; border-radius: 8px; }
+.ov-edit-row button { width: auto; padding: 7px 11px !important; font-size: 0.75rem !important; border-radius: 8px !important; }
+
+/* chrome tabs */
+.chrome-tab-wrap {
+    background: var(--bg-card2); border: 1px solid var(--border-color);
+    border-top: none; padding: 0 20px; margin-bottom: 24px;
+    border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm);
+    box-shadow: 0 4px 20px var(--shadow-card);
+}
+.chrome-tabs { display: flex; gap: 4px; padding-top: 10px; }
+.chrome-tab {
+    padding: 10px 28px 12px; border: 1px solid transparent; border-bottom: none;
+    background: rgba(180,155,120,0.2); color: var(--text-secondary);
+    font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer; border-radius: 10px 10px 0 0; transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 7px; position: relative; top: 1px;
+    width: auto; box-shadow: none;
+}
+.chrome-tab::before { display: none; }
+.chrome-tab:hover { background: rgba(245,240,232,0.8); color: var(--text-primary); transform: none; box-shadow: none; }
+.chrome-tab.active { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-color); border-bottom-color: var(--bg-card); box-shadow: 0 -2px 10px rgba(181,129,58,0.1); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* form card */
+.card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+    box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.card.expense { border-top: 3px solid var(--expense-color); }
+.card.credit { border-top: 3px solid var(--credit-color); }
+.card-title { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+
+/* records list */
+.records-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 28px; box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset; }
+.records-header { font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600; margin-bottom: 18px; text-align: center; color: var(--text-primary); }
+.search-bar { margin-bottom: 18px; }
+.record-item {
+    display: grid; grid-template-columns: 100px 1fr 130px 1fr 70px;
+    gap: 12px; padding: 16px 18px; margin-bottom: 10px;
+    border: 1px solid var(--border-color); background: var(--bg-card2);
+    border-radius: var(--radius-sm); align-items: center; transition: all 0.2s ease;
+    animation: slideIn 0.3s ease;
+}
+@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.record-item:hover { background: white; transform: translateX(4px); border-left: 3px solid var(--accent); }
+.record-date { font-weight: 700; color: var(--text-secondary); font-size: 0.85rem; }
+.record-desc { font-size: 0.95rem; color: var(--text-primary); }
+.record-desc .record-note { display:block; font-size: 0.78rem; color: var(--text-secondary); margin-top:2px; font-style: italic; }
+.record-amounts { text-align: right; }
+.record-amount-orig { font-family: 'Crimson Pro', serif; font-size: 1.2rem; font-weight: 600; color: var(--expense-color); }
+.record-amount-twd { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+.record-rate { font-size: 0.78rem; color: var(--text-secondary); }
+.delete-btn { width: auto; padding: 7px 14px; background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; border-radius: 8px; box-shadow: none; }
+.delete-btn:hover { background: rgba(139,58,42,0.1); transform: none; box-shadow: none; }
+.delete-btn::before { display: none; }
+
+/* ===== Combined budget overview (above tabs) ===== */
+.combo-banner { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+.combo-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius); padding: 22px;
+    box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.combo-card.credit-card-combo { border-top: 3px solid var(--credit-color); }
+.combo-card.cash-card-combo { border-top: 3px solid var(--income-color); }
+.combo-title { font-family: 'Crimson Pro', serif; font-size: 1.2rem; font-weight: 600; margin-bottom: 14px; }
+.combo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 10px; }
+.combo-stat { text-align: center; }
+.combo-stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 4px; }
+.combo-stat-value { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; }
+.combo-divider { display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 1.2rem; }
+.combo-edit-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color); }
+.combo-edit-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.combo-edit-row .swap-icon { text-align: center; color: var(--text-secondary); font-size: 1.1rem; }
+.combo-edit-row label { margin-bottom: 4px; }
+.combo-edit-actions { margin-top: 10px; }
+.rate-hint { font-size: 0.72rem; color: var(--text-secondary); margin-top: 8px; text-align: center; font-style: italic; }
+.rate-status { font-size: 0.75rem; text-align: center; margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; display: none; }
+.rate-status.show { display: block; }
+.rate-status.ok { background: rgba(45,107,63,0.1); color: var(--income-color); }
+.rate-status.fail { background: rgba(139,58,42,0.08); color: var(--expense-color); }
+.rate-status.loading { background: rgba(181,129,58,0.1); color: var(--accent); }
+
+/* ===== Sync Status ===== */
+.sync-status {
+    font-size: 0.78rem; padding: 5px 14px; border-radius: 20px;
+    font-weight: 600; letter-spacing: 0.04em; transition: all 0.3s;
+}
+.sync-status.ok { background: rgba(45,107,63,0.12); color: var(--income-color); border: 1px solid rgba(45,107,63,0.2); }
+.sync-status.err { background: rgba(139,58,42,0.1); color: var(--expense-color); border: 1px solid rgba(139,58,42,0.2); }
+.sync-status.loading { background: rgba(181,129,58,0.1); color: var(--accent); border: 1px solid rgba(181,129,58,0.2); }
+
+/* ===== Top Summary Bar ===== */
+.top-summary-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--bg-card2); border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm); padding: 14px 20px;
+}
+.top-summary-item { text-align: center; flex: 1; min-width: 90px; }
+.top-summary-item.highlight { flex: 1.3; }
+.top-summary-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 4px; }
+.top-summary-value { font-family: 'Crimson Pro', serif; font-size: 1.15rem; font-weight: 600; }
+.top-summary-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+.top-summary-sep { font-size: 1.1rem; color: var(--text-secondary); font-weight: 300; flex: 0; }
+
+/* ===== Records header row with export button ===== */
+.records-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 12px; }
+.records-header-row .records-header { margin-bottom: 0; }
+.export-btn { padding: 8px 16px !important; font-size: 0.82rem !important; background: var(--bg-card2) !important; color: var(--text-secondary) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; width: auto !important; }
+.export-btn:hover { color: var(--text-primary) !important; border-color: var(--accent) !important; background: white !important; transform: none !important; }
+.export-btn::before { display: none !important; }
+
+/* ===== Custom dialog/modal (replaces alert/confirm/prompt) ===== */
+.modal-overlay {
+    position: fixed; inset: 0; background: rgba(26,21,16,0.65);
+    backdrop-filter: blur(4px); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-box {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius); padding: 28px; max-width: 380px; width: 100%;
+    box-shadow: 0 16px 60px var(--shadow); transform: translateY(10px); transition: transform 0.2s ease;
+}
+.modal-overlay.show .modal-box { transform: translateY(0); }
+.modal-icon { font-size: 2.2rem; text-align: center; margin-bottom: 10px; }
+.modal-title { font-family: 'Crimson Pro', serif; font-size: 1.25rem; font-weight: 600; text-align: center; margin-bottom: 8px; color: var(--text-primary); }
+.modal-message { font-size: 0.92rem; color: var(--text-secondary); text-align: center; margin-bottom: 20px; line-height: 1.7; }
+.modal-input { margin-bottom: 18px; }
+.modal-actions { display: flex; gap: 10px; }
+.modal-actions button { flex: 1; }
+
+@media (max-width: 768px) {
+    .combo-banner { grid-template-columns: 1fr; }
+    .combo-edit-row { grid-template-columns: 1fr; }
+    .combo-edit-row .swap-icon { display: none; }
+    body { padding: 10px; }
+    h1 { font-size: 2rem; }
+    header { padding: 28px 16px 24px; border-radius: 16px; }
+    .trip-grid { grid-template-columns: 1fr; }
+    .overview-banner { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .ov-item { padding: 12px 8px; }
+    .ov-value { font-size: 1.2rem; }
+    .ov-label { font-size: 0.6rem; }
+    .record-item { grid-template-columns: 1fr; gap: 6px; text-align: left; }
+    .record-amounts { text-align: left; }
+    .row { flex-direction: column; }
+    .chrome-tab { padding: 10px 16px 12px; font-size: 0.85rem; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>旅遊記帳本</h1>
+        <div class="subtitle">Travel Expense &amp; Currency Tracker</div>
+        <div style="margin-top:14px;"><span id="syncStatus" class="sync-status loading">☁️ 連線中...</span></div>
+    </header>
+
+    <!-- ============ Trip List Page ============ -->
+    <div id="tripListPage">
+        <div class="glass">
+            <h2 class="card-title" style="border:none;margin-bottom:16px;">新增一趟旅程</h2>
+            <div class="row">
+                <div class="form-group">
+                    <label>旅程名稱</label>
+                    <input type="text" id="newTripName" placeholder="例如：日本關西自由行">
+                </div>
+                <div class="form-group">
+                    <label>幣別</label>
+                    <select id="newTripCurrency">
+                        <option value="JPY">JPY - 日圓</option>
+                        <option value="USD">USD - 美元</option>
+                        <option value="EUR">EUR - 歐元</option>
+                        <option value="KRW">KRW - 韓元</option>
+                        <option value="CNY">CNY - 人民幣</option>
+                        <option value="GBP">GBP - 英鎊</option>
+                        <option value="AUD">AUD - 澳幣</option>
+                        <option value="HKD">HKD - 港幣</option>
+                        <option value="THB">THB - 泰銖</option>
+                        <option value="SGD">SGD - 新加坡幣</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label>國家</label>
+                    <input type="text" id="newTripCountry" placeholder="日本">
+                </div>
+                <div class="form-group">
+                    <label>城市</label>
+                    <input type="text" id="newTripCity" placeholder="大阪">
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label>出發日期</label>
+                    <input type="date" id="newTripStart">
+                </div>
+                <div class="form-group">
+                    <label>結束日期</label>
+                    <input type="date" id="newTripEnd">
+                </div>
+            </div>
+            <button onclick="createTrip()"><span>＋ 建立旅程</span></button>
+        </div>
+
+        <div class="glass" style="padding:28px;">
+            <h2 class="card-title" style="border:none;margin-bottom:16px;">我的旅程</h2>
+            <div id="tripGrid" class="trip-grid"></div>
+            <div id="tripPagination" class="pagination"></div>
+        </div>
+    </div>
+
+    <!-- ============ Trip Detail Page ============ -->
+    <div id="detailPage">
+        <div class="glass" style="padding:20px 28px 24px;margin-bottom:20px;">
+            <div class="back-bar">
+                <button class="secondary small" onclick="goToList()"><span>← 返回旅程列表</span></button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
+                <div>
+                    <div class="trip-title" id="detailTripName" style="color:var(--text-primary)"></div>
+                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;" id="detailTripMeta"></div>
+                </div>
+                <div class="trip-card-currency" id="detailTripCurrency"></div>
+            </div>
+            <!-- Top summary bar -->
+            <div class="top-summary-bar">
+                <div class="top-summary-item">
+                    <div class="top-summary-label">現金支出</div>
+                    <div class="top-summary-value expense-val" id="topCashSpentLocal">—</div>
+                    <div class="top-summary-sub" id="topCashSpent">—</div>
+                </div>
+                <div class="top-summary-sep">＋</div>
+                <div class="top-summary-item">
+                    <div class="top-summary-label">信用卡支出</div>
+                    <div class="top-summary-value credit-val" id="topCreditSpentLocal">—</div>
+                    <div class="top-summary-sub" id="topCreditSpent">—</div>
+                </div>
+                <div class="top-summary-sep">=</div>
+                <div class="top-summary-item highlight">
+                    <div class="top-summary-label">總支出</div>
+                    <div class="top-summary-value" id="topTotalSpentLocal" style="color:var(--text-primary);">—</div>
+                    <div class="top-summary-sub" id="topTotalSpent">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Combined Budget Overview -->
+        <div class="combo-banner">
+            <div class="combo-card cash-card-combo">
+                <div class="combo-title">💴 現金</div>
+                <div class="combo-row">
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">預算</div>
+                        <div class="combo-stat-value income-val" id="cashBudgetVal">0</div>
+                    </div>
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">支出</div>
+                        <div class="combo-stat-value expense-val" id="cashSpentVal">0</div>
+                    </div>
+                </div>
+                <div class="combo-row">
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">餘額</div>
+                        <div class="combo-stat-value" id="cashBalanceVal">0</div>
+                    </div>
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">餘額 (TWD)</div>
+                        <div class="combo-stat-value" id="cashBalanceTwd">0</div>
+                    </div>
+                </div>
+                <div class="combo-edit-section">
+                    <label>新增現金預算 (兩邊輸入會即時互換)</label>
+                    <div class="combo-edit-row">
+                        <div>
+                            <input type="number" id="cashBudgetInputLocal" placeholder="當地幣金額">
+                        </div>
+                        <div class="swap-icon">⇄</div>
+                        <div>
+                            <input type="number" id="cashBudgetInputTwd" placeholder="台幣金額">
+                        </div>
+                    </div>
+                    <div class="combo-edit-actions">
+                        <div style="display:flex;gap:8px;">
+                            <button class="auto" onclick="addCashBudget()" style="flex:1"><span>新增到預算</span></button>
+                            <button class="auto secondary" onclick="clearCashBudget()" style="flex:0 0 auto;color:var(--expense-color);border-color:rgba(139,58,42,0.3)"><span>清零</span></button>
+                        </div>
+                    </div>
+                    <div class="rate-status" id="cashBudgetRateStatus"></div>
+                </div>
+            </div>
+
+            <div class="combo-card credit-card-combo">
+                <div class="combo-title">💳 信用卡</div>
+                <div class="combo-row">
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">額度</div>
+                        <div class="combo-stat-value credit-val" id="creditLimitVal">0</div>
+                    </div>
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">支出</div>
+                        <div class="combo-stat-value expense-val" id="creditSpentVal">0</div>
+                    </div>
+                </div>
+                <div class="combo-row">
+                    <div class="combo-stat">
+                        <div class="combo-stat-label">總支出 (現金+信用卡)</div>
+                        <div class="combo-stat-value" id="totalSpentTwd" style="grid-column: span 2;">0</div>
+                    </div>
+                </div>
+                <div class="combo-edit-section">
+                    <label>設定信用卡額度 (兩邊輸入會即時互換)</label>
+                    <div class="combo-edit-row">
+                        <div>
+                            <input type="number" id="creditLimitInputLocal" placeholder="當地幣金額">
+                        </div>
+                        <div class="swap-icon">⇄</div>
+                        <div>
+                            <input type="number" id="creditLimitInputTwd" placeholder="台幣金額">
+                        </div>
+                    </div>
+                    <div class="combo-edit-actions">
+                        <div style="display:flex;gap:8px;">
+                            <button class="auto" onclick="setCreditLimit()" style="flex:1"><span>設定額度</span></button>
+                            <button class="auto secondary" onclick="clearCreditLimit()" style="flex:0 0 auto;color:var(--expense-color);border-color:rgba(139,58,42,0.3)"><span>清零</span></button>
+                        </div>
+                    </div>
+                    <div class="rate-status" id="creditLimitRateStatus"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="chrome-tab-wrap">
+            <div class="chrome-tabs">
+                <div class="chrome-tab active" data-tab="cash" onclick="switchTab('cash')"><span>💴 現金紀錄</span></div>
+                <div class="chrome-tab" data-tab="credit" onclick="switchTab('credit')"><span>💳 信用卡紀錄</span></div>
+            </div>
+        </div>
+
+        <!-- Cash Tab -->
+        <div class="tab-content active" id="tab-cash">
+            <div class="card expense">
+                <div class="card-title">新增現金支出</div>
+                <div class="rate-status" id="cashRateStatus"></div>
+                <div class="row">
+                    <div class="form-group">
+                        <label>支出日期</label>
+                        <input type="date" id="cashDate">
+                    </div>
+                    <div class="form-group">
+                        <label>項目</label>
+                        <input type="text" id="cashItem" placeholder="例如：午餐、計程車">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>金額 (<span id="cashCurrencyLabel1">當地幣</span>)</label>
+                    <input type="number" id="cashAmount" placeholder="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>備註</label>
+                    <input type="text" id="cashNote" placeholder="選填">
+                </div>
+                <div class="rate-hint">送出時將自動抓取當下匯率並換算台幣</div>
+                <button onclick="addCashRecord()"><span>＋ 新增支出</span></button>
+            </div>
+
+            <div class="records-section">
+                <div class="records-header-row">
+                    <div class="records-header">現金消費紀錄</div>
+                    <button class="auto secondary export-btn" onclick="exportExcel()"><span>📥 匯出 Excel</span></button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="cashSearch" placeholder="搜尋項目或備註..." oninput="renderCashRecords()">
+                </div>
+                <div id="cashRecordsList"></div>
+                <div id="cashPagination" class="pagination"></div>
+            </div>
+        </div>
+
+        <!-- Credit Tab -->
+        <div class="tab-content" id="tab-credit">
+            <div class="card credit">
+                <div class="card-title">新增信用卡消費</div>
+                <div class="rate-status" id="creditRateStatus"></div>
+                <div class="row">
+                    <div class="form-group">
+                        <label>消費日期</label>
+                        <input type="date" id="creditDate">
+                    </div>
+                    <div class="form-group">
+                        <label>項目</label>
+                        <input type="text" id="creditItem" placeholder="例如：飯店、購物">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>金額 (<span id="creditCurrencyLabel1">當地幣</span>)</label>
+                    <input type="number" id="creditAmount" placeholder="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>備註</label>
+                    <input type="text" id="creditNote" placeholder="選填">
+                </div>
+                <div class="rate-hint">送出時將自動抓取當下匯率並換算台幣</div>
+                <button onclick="addCreditRecord()"><span>＋ 新增消費</span></button>
+            </div>
+
+            <div class="records-section">
+                <div class="records-header-row">
+                    <div class="records-header">信用卡消費紀錄</div>
+                    <button class="auto secondary export-btn" onclick="exportExcel()"><span>📥 匯出 Excel</span></button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="creditSearch" placeholder="搜尋項目或備註..." oninput="renderCreditRecords()">
+                </div>
+                <div id="creditRecordsList"></div>
+                <div id="creditPagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Modal (replaces alert/confirm/prompt) -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon">💬</div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-message" id="modalMessage"></div>
+        <div class="modal-input" id="modalInputWrap" style="display:none;">
+            <input type="text" id="modalInput">
+        </div>
+        <div class="modal-actions" id="modalActions"></div>
+    </div>
+</div>
+
+
+<script type="module">
+// ===== Firebase =====
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAg0E_k5-EEubKUm7WwI1cT5VIgvzWMyS4",
+    authDomain: "traveling-expensetracker.firebaseapp.com",
+    projectId: "traveling-expensetracker",
+    storageBucket: "traveling-expensetracker.firebasestorage.app",
+    messagingSenderId: "626143162743",
+    appId: "1:626143162743:web:4473f086fa8a631985f172"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const FIRESTORE_DOC = 'data/trips';
+
+let firestoreReady = false;
+let isSyncing = false; // prevent echo loop
+
+// Show sync status in UI
+function setSyncStatus(state, msg) {
+    let el = document.getElementById('syncStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'sync-status ' + state;
+}
+
+// Save to Firestore
+async function saveToFirestore(trips) {
+    if (isSyncing) return;
+    try {
+        await setDoc(doc(db, 'data', 'trips'), { trips: JSON.stringify(trips) });
+        setSyncStatus('ok', '☁️ 已同步');
+    } catch(e) {
+        setSyncStatus('err', '⚠️ 同步失敗，資料已存本機');
+        console.error('Firestore save error:', e);
+    }
+}
+
+// Load from Firestore on start, then listen for real-time updates
+function initFirestore() {
+    setSyncStatus('loading', '☁️ 連線中...');
+    const ref = doc(db, 'data', 'trips');
+    onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+            isSyncing = true;
+            try {
+                const remote = JSON.parse(snap.data().trips || '[]');
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+                // re-render current view
+                if (currentTripId) {
+                    renderDetail();
+                } else {
+                    renderTripList();
+                }
+            } catch(e) { console.error('Firestore parse error:', e); }
+            isSyncing = false;
+        }
+        firestoreReady = true;
+        setSyncStatus('ok', '☁️ 已同步');
+    }, (err) => {
+        console.error('Firestore listener error:', err);
+        firestoreReady = false;
+        setSyncStatus('err', '⚠️ 離線模式（僅存本機）');
+    });
+}
+
+const STORAGE_KEY = 'travelTrips';
+const TRIPS_PER_PAGE = 10;
+const RECORDS_PER_PAGE = 10;
+
+let currentTripId = null;
+let tripListPageNum = 1;
+let cashPageNum = 1;
+let creditPageNum = 1;
+
+// ===== Data layer =====
+function loadTrips() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch(e) { return []; }
+}
+function saveTrips(trips) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
+    if (!isSyncing) saveToFirestore(trips);
+}
+function getTrip(id) {
+    return loadTrips().find(t => t.id === id);
+}
+function updateTrip(id, fn) {
+    const trips = loadTrips();
+    const idx = trips.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    fn(trips[idx]);
+    saveTrips(trips);
+}
+
+function uid() { return 'id_' + Date.now() + '_' + Math.floor(Math.random()*100000); }
+
+function fmt(n) {
+    n = Math.ceil(Number(n) || 0);
+    return n.toLocaleString('zh-TW');
+}
+
+// ===== Custom Modal (replaces alert/confirm/prompt) =====
+const modalOverlay = document.getElementById('modalOverlay');
+const modalIcon = document.getElementById('modalIcon');
+const modalTitle = document.getElementById('modalTitle');
+const modalMessage = document.getElementById('modalMessage');
+const modalInputWrap = document.getElementById('modalInputWrap');
+const modalInput = document.getElementById('modalInput');
+const modalActions = document.getElementById('modalActions');
+
+function closeModal() {
+    modalOverlay.classList.remove('show');
+}
+
+function showAlert(message, opts = {}) {
+    return new Promise(resolve => {
+        modalIcon.textContent = opts.icon || '💡';
+        modalTitle.textContent = opts.title || '提示';
+        modalMessage.textContent = message;
+        modalInputWrap.style.display = 'none';
+        modalActions.innerHTML = '';
+        const okBtn = document.createElement('button');
+        okBtn.innerHTML = '<span>知道了</span>';
+        okBtn.onclick = () => { closeModal(); resolve(true); };
+        modalActions.appendChild(okBtn);
+        modalOverlay.classList.add('show');
+    });
+}
+
+function showConfirm(message, opts = {}) {
+    return new Promise(resolve => {
+        modalIcon.textContent = opts.icon || '❓';
+        modalTitle.textContent = opts.title || '請確認';
+        modalMessage.textContent = message;
+        modalInputWrap.style.display = 'none';
+        modalActions.innerHTML = '';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'secondary';
+        cancelBtn.innerHTML = '<span>取消</span>';
+        cancelBtn.onclick = () => { closeModal(); resolve(false); };
+        const okBtn = document.createElement('button');
+        okBtn.className = opts.danger ? 'danger' : '';
+        okBtn.innerHTML = `<span>${opts.confirmText || '確定'}</span>`;
+        okBtn.onclick = () => { closeModal(); resolve(true); };
+        modalActions.appendChild(cancelBtn);
+        modalActions.appendChild(okBtn);
+        modalOverlay.classList.add('show');
+    });
+}
+
+modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+});
+
+function showRateInputModal(currencyCode) {
+    return new Promise(resolve => {
+        modalIcon.textContent = '💱';
+        modalTitle.textContent = '無法取得即時匯率';
+        modalMessage.textContent = `自動抓取 ${currencyCode} → TWD 匯率失敗，請手動輸入當下匯率（1 ${currencyCode} = ? TWD）`;
+        modalInputWrap.style.display = 'block';
+        modalInput.type = 'number';
+        modalInput.step = '0.0001';
+        modalInput.placeholder = '例如 0.21';
+        modalInput.value = '';
+        modalActions.innerHTML = '';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'secondary';
+        cancelBtn.innerHTML = '<span>取消</span>';
+        cancelBtn.onclick = () => { closeModal(); resolve(null); };
+        const okBtn = document.createElement('button');
+        okBtn.innerHTML = '<span>確定</span>';
+        okBtn.onclick = () => {
+            const v = parseFloat(modalInput.value);
+            if (isNaN(v) || v <= 0) { modalInput.focus(); return; }
+            closeModal();
+            resolve(v);
+        };
+        modalActions.appendChild(cancelBtn);
+        modalActions.appendChild(okBtn);
+        modalOverlay.classList.add('show');
+        setTimeout(() => modalInput.focus(), 50);
+    });
+}
+
+// ===== Exchange rate fetching =====
+// Uses exchangerate-api.com's free open endpoint (no API key required, supports CORS)
+const rateCache = {}; // { 'JPY_2024-01-01': rate } cache by currency+date(today only meaningful)
+
+async function fetchRate(currencyCode) {
+    const cacheKey = currencyCode;
+    const now = Date.now();
+    if (rateCache[cacheKey] && (now - rateCache[cacheKey].time) < 5 * 60 * 1000) {
+        return rateCache[cacheKey].rate;
+    }
+    try {
+        const res = await fetch(`https://open.er-api.com/v6/latest/${currencyCode}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (data.result !== 'success' || !data.rates || !data.rates.TWD) {
+            throw new Error('無有效匯率資料');
+        }
+        const rate = data.rates.TWD; // 1 unit of currencyCode = X TWD
+        rateCache[cacheKey] = { rate, time: now };
+        return rate;
+    } catch (err) {
+        return null;
+    }
+}
+
+function setRateStatus(elId, state, text) {
+    const el = document.getElementById(elId);
+    el.className = 'rate-status show ' + state;
+    el.textContent = text;
+}
+function clearRateStatus(elId) {
+    const el = document.getElementById(elId);
+    el.className = 'rate-status';
+    el.textContent = '';
+}
+
+// ===== Trip List Page =====
+async function createTrip() {
+    const name = document.getElementById('newTripName').value.trim();
+    const currency = document.getElementById('newTripCurrency').value;
+    const country = document.getElementById('newTripCountry').value.trim();
+    const city = document.getElementById('newTripCity').value.trim();
+    const start = document.getElementById('newTripStart').value;
+    const end = document.getElementById('newTripEnd').value;
+
+    if (!name) {
+        await showAlert('請輸入旅程名稱', { icon: '✏️' });
+        return;
+    }
+
+    const trip = {
+        id: uid(),
+        name, currency, country, city, start, end,
+        cashBudget: 0,
+        creditLimit: 0,
+        cashRecords: [],
+        creditRecords: []
+    };
+    const trips = loadTrips();
+    trips.unshift(trip);
+    saveTrips(trips);
+
+    document.getElementById('newTripName').value = '';
+    document.getElementById('newTripCurrency').value = 'JPY';
+    document.getElementById('newTripCountry').value = '';
+    document.getElementById('newTripCity').value = '';
+    document.getElementById('newTripStart').value = '';
+    document.getElementById('newTripEnd').value = '';
+
+    tripListPageNum = 1;
+    renderTripList();
+}
+
+async function deleteTrip(id, evt) {
+    evt.stopPropagation();
+    const ok = await showConfirm('確定要刪除這趟旅程的所有紀錄嗎？此動作無法復原。', { icon: '🗑️', danger: true, confirmText: '刪除' });
+    if (!ok) return;
+    let trips = loadTrips();
+    trips = trips.filter(t => t.id !== id);
+    saveTrips(trips);
+    renderTripList();
+}
+
+function renderTripList() {
+    const trips = loadTrips();
+    const grid = document.getElementById('tripGrid');
+    const pagWrap = document.getElementById('tripPagination');
+
+    if (trips.length === 0) {
+        grid.innerHTML = '<div class="empty-state">尚未建立任何旅程，請在上方新增一趟旅程</div>';
+        pagWrap.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(trips.length / TRIPS_PER_PAGE);
+    if (tripListPageNum > totalPages) tripListPageNum = totalPages;
+    if (tripListPageNum < 1) tripListPageNum = 1;
+
+    const startIdx = (tripListPageNum - 1) * TRIPS_PER_PAGE;
+    const pageTrips = trips.slice(startIdx, startIdx + TRIPS_PER_PAGE);
+
+    grid.innerHTML = pageTrips.map(t => {
+        const dateRange = (t.start || t.end)
+            ? `${t.start || '?'} ~ ${t.end || '?'}`
+            : '日期未設定';
+        const loc = (t.country || t.city) ? `${t.country || ''}${t.country && t.city ? ' / ' : ''}${t.city || ''}` : '地點未設定';
+        return `
+        <div class="trip-card" onclick="openTrip('${t.id}')">
+            <button class="trip-card-del" onclick="deleteTrip('${t.id}', event)">刪除</button>
+            <div class="trip-card-name">${escapeHtml(t.name)}</div>
+            <div class="trip-card-loc">📍 ${escapeHtml(loc)}</div>
+            <div class="trip-card-date">🗓 ${escapeHtml(dateRange)}</div>
+            <div class="trip-card-currency">${escapeHtml(t.currency)}</div>
+        </div>`;
+    }).join('');
+
+    // pagination
+    if (totalPages <= 1) {
+        pagWrap.innerHTML = '';
+        return;
+    }
+    let html = `<button class="page-btn" ${tripListPageNum===1?'disabled':''} onclick="changeTripPage(${tripListPageNum-1})">‹ 上一頁</button>`;
+    for (let i=1; i<=totalPages; i++) {
+        html += `<button class="page-btn ${i===tripListPageNum?'active':''}" onclick="changeTripPage(${i})">${i}</button>`;
+    }
+    html += `<button class="page-btn" ${tripListPageNum===totalPages?'disabled':''} onclick="changeTripPage(${tripListPageNum+1})">下一頁 ›</button>`;
+    pagWrap.innerHTML = html;
+}
+function changeTripPage(p) { tripListPageNum = p; renderTripList(); }
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ===== Navigation =====
+function openTrip(id) {
+    currentTripId = id;
+    cashPageNum = 1;
+    creditPageNum = 1;
+    lastFetchedRate = null;
+    document.getElementById('tripListPage').style.display = 'none';
+    document.getElementById('detailPage').style.display = 'block';
+    renderDetail();
+    // wire bidirectional inputs once (not in render loop)
+    wireBidirectional('cashBudgetInputLocal', 'cashBudgetInputTwd', () => lastFetchedRate, 'cashBudgetRateStatus');
+    wireBidirectional('creditLimitInputLocal', 'creditLimitInputTwd', () => lastFetchedRate, 'creditLimitRateStatus');
+    // prefetch rate in background for balance display / bidirectional inputs
+    fetchRate(currentTripCurrency()).then(r => {
+        if (r != null) { lastFetchedRate = r; renderDetail(); }
+    });
+}
+function goToList() {
+    currentTripId = null;
+    document.getElementById('detailPage').style.display = 'none';
+    document.getElementById('tripListPage').style.display = 'block';
+    renderTripList();
+}
+function switchTab(tab) {
+    document.querySelectorAll('.chrome-tab').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+    document.getElementById('tab-cash').classList.toggle('active', tab === 'cash');
+    document.getElementById('tab-credit').classList.toggle('active', tab === 'credit');
+}
+
+// ===== Detail Page Render =====
+function renderDetail() {
+    const trip = getTrip(currentTripId);
+    if (!trip) { goToList(); return; }
+
+    document.getElementById('detailTripName').textContent = trip.name;
+    const loc = [trip.country, trip.city].filter(Boolean).join(' / ');
+    const dateRange = (trip.start || trip.end) ? `${trip.start||'?'} ~ ${trip.end||'?'}` : '';
+    document.getElementById('detailTripMeta').textContent = [loc, dateRange].filter(Boolean).join('　|　');
+    document.getElementById('detailTripCurrency').textContent = trip.currency;
+
+    // currency labels
+    ['cashCurrencyLabel1','creditCurrencyLabel1'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = trip.currency;
+    });
+
+    renderCashOverview(trip);
+    renderCreditOverview(trip);
+    renderCashRecords();
+    renderCreditRecords();
+}
+
+// ===== Bidirectional local<->TWD input sync =====
+// rateGetter: function returning latest known rate (1 local = X TWD), or null
+function wireBidirectional(localId, twdId, getRate, statusId) {
+    const localEl = document.getElementById(localId);
+    const twdEl = document.getElementById(twdId);
+    let syncing = false;
+    localEl.addEventListener('input', async () => {
+        if (syncing) return;
+        const v = parseFloat(localEl.value);
+        if (isNaN(v)) { twdEl.value = ''; return; }
+        let rate = getRate();
+        if (rate == null) {
+            if (statusId) setRateStatus(statusId, 'loading', '正在抓取即時匯率...');
+            rate = await fetchRate(currentTripCurrency());
+            if (rate == null) {
+                if (statusId) setRateStatus(statusId, 'fail', '無法取得即時匯率，請手動輸入台幣金額');
+                return;
+            }
+            if (statusId) setRateStatus(statusId, 'ok', `即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+            lastFetchedRate = rate;
+        }
+        syncing = true;
+        twdEl.value = (v * rate).toFixed(2);
+        syncing = false;
+    });
+    twdEl.addEventListener('input', async () => {
+        if (syncing) return;
+        const v = parseFloat(twdEl.value);
+        if (isNaN(v)) { localEl.value = ''; return; }
+        let rate = getRate();
+        if (rate == null) {
+            if (statusId) setRateStatus(statusId, 'loading', '正在抓取即時匯率...');
+            rate = await fetchRate(currentTripCurrency());
+            if (rate == null) {
+                if (statusId) setRateStatus(statusId, 'fail', '無法取得即時匯率，請手動輸入當地幣金額');
+                return;
+            }
+            if (statusId) setRateStatus(statusId, 'ok', `即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+            lastFetchedRate = rate;
+        }
+        syncing = true;
+        localEl.value = (v / rate).toFixed(2);
+        syncing = false;
+    });
+}
+let lastFetchedRate = null; // cache of most recently fetched rate this session
+function currentTripCurrency() {
+    const trip = getTrip(currentTripId);
+    return trip ? trip.currency : 'USD';
+}
+
+// ===== Cash =====
+async function addCashBudget() {
+    const localEl = document.getElementById('cashBudgetInputLocal');
+    const twdEl = document.getElementById('cashBudgetInputTwd');
+    let val = parseFloat(localEl.value);
+    let valTwd = parseFloat(twdEl.value);
+
+    if (isNaN(val) && isNaN(valTwd)) {
+        await showAlert('請輸入金額（當地幣或台幣皆可）', { icon: '✏️' });
+        return;
+    }
+    if (isNaN(val)) {
+        // only TWD given, convert
+        setRateStatus('cashBudgetRateStatus', 'loading', '正在抓取即時匯率...');
+        const rate = await fetchRate(currentTripCurrency());
+        if (rate == null) {
+            setRateStatus('cashBudgetRateStatus', 'fail', '無法取得即時匯率，請改輸入當地幣金額');
+            return;
+        }
+        val = valTwd / rate;
+        setRateStatus('cashBudgetRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+    }
+
+    updateTrip(currentTripId, t => { t.cashBudget = (t.cashBudget || 0) + val; });
+    localEl.value = '';
+    twdEl.value = '';
+    renderDetail();
+}
+
+function renderCashOverview(trip) {
+    const budget = trip.cashBudget || 0;
+    let spent = 0, spentTwd = 0;
+
+    trip.cashRecords.forEach(r => { spent += r.amount; spentTwd += r.amount * r.rate; });
+
+    const avgRate = trip.cashRecords.length > 0
+        ? trip.cashRecords.reduce((s,r)=>s+r.rate,0) / trip.cashRecords.length
+        : (lastFetchedRate || 0);
+
+    const balance = budget - spent;
+    const balanceTwd = balance * avgRate;
+
+    document.getElementById('cashBudgetVal').textContent = fmt(budget) + ' ' + trip.currency;
+    document.getElementById('cashSpentVal').textContent = fmt(spent) + ' ' + trip.currency;
+    document.getElementById('cashBalanceVal').textContent = fmt(balance) + ' ' + trip.currency;
+    document.getElementById('cashBalanceTwd').textContent = 'NT$ ' + fmt(balanceTwd);
+
+    // update top summary bar (cash side)
+    document.getElementById('topCashSpentLocal').textContent = fmt(spent) + ' ' + trip.currency;
+    document.getElementById('topCashSpent').textContent = 'NT$ ' + fmt(spentTwd);
+}
+
+async function addCashRecord() {
+    const date = document.getElementById('cashDate').value;
+    const item = document.getElementById('cashItem').value.trim();
+    const amount = parseFloat(document.getElementById('cashAmount').value);
+    const note = document.getElementById('cashNote').value.trim();
+
+    if (!date || !item || isNaN(amount)) {
+        await showAlert('請填寫日期、項目與金額', { icon: '✏️' });
+        return;
+    }
+
+    setRateStatus('cashRateStatus', 'loading', '正在抓取當下即時匯率...');
+    let rate = await fetchRate(currentTripCurrency());
+    if (rate == null) {
+        clearRateStatus('cashRateStatus');
+        const manualRate = await showRateInputModal(currentTripCurrency());
+        if (manualRate == null) return; // cancelled
+        rate = manualRate;
+    } else {
+        lastFetchedRate = rate;
+        setRateStatus('cashRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+    }
+
+    updateTrip(currentTripId, t => {
+        t.cashRecords.unshift({ id: uid(), date, item, amount, rate, note });
+    });
+
+    document.getElementById('cashDate').value = '';
+    document.getElementById('cashItem').value = '';
+    document.getElementById('cashAmount').value = '';
+    document.getElementById('cashNote').value = '';
+
+    cashPageNum = 1;
+    renderDetail();
+}
+
+async function deleteCashRecord(id) {
+    const ok = await showConfirm('確定刪除這筆紀錄？', { icon: '🗑️', danger: true, confirmText: '刪除' });
+    if (!ok) return;
+    updateTrip(currentTripId, t => {
+        t.cashRecords = t.cashRecords.filter(r => r.id !== id);
+    });
+    renderDetail();
+}
+
+function renderCashRecords() {
+    const trip = getTrip(currentTripId);
+    if (!trip) return;
+    const search = (document.getElementById('cashSearch').value || '').toLowerCase();
+
+    let records = trip.cashRecords.slice();
+    if (search) {
+        records = records.filter(r =>
+            r.item.toLowerCase().includes(search) || (r.note||'').toLowerCase().includes(search)
+        );
+    }
+
+    const listEl = document.getElementById('cashRecordsList');
+    const pagEl = document.getElementById('cashPagination');
+
+    if (records.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">尚無紀錄</div>';
+        pagEl.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(records.length / RECORDS_PER_PAGE);
+    if (cashPageNum > totalPages) cashPageNum = totalPages;
+    if (cashPageNum < 1) cashPageNum = 1;
+
+    const startIdx = (cashPageNum - 1) * RECORDS_PER_PAGE;
+    const pageRecords = records.slice(startIdx, startIdx + RECORDS_PER_PAGE);
+
+    listEl.innerHTML = pageRecords.map(r => `
+        <div class="record-item">
+            <div class="record-date">${escapeHtml(r.date)}</div>
+            <div class="record-desc">${escapeHtml(r.item)}${r.note ? `<span class="record-note">${escapeHtml(r.note)}</span>` : ''}</div>
+            <div class="record-rate">匯率 1 ${escapeHtml(trip.currency)} = ${r.rate} TWD</div>
+            <div class="record-amounts">
+                <div class="record-amount-orig">${fmt(r.amount)} ${escapeHtml(trip.currency)}</div>
+                <div class="record-amount-twd">≈ NT$ ${fmt(r.amount * r.rate)}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteCashRecord('${r.id}')">刪除</button>
+        </div>
+    `).join('');
+
+    renderPagination(pagEl, totalPages, cashPageNum, p => { cashPageNum = p; renderCashRecords(); });
+}
+
+async function clearCashBudget() {
+    const ok = await showConfirm('確定將現金預算清零？此動作無法復原。', { icon: '🗑️', danger: true, confirmText: '清零' });
+    if (!ok) return;
+    updateTrip(currentTripId, t => { t.cashBudget = 0; });
+    renderDetail();
+}
+
+// ===== Credit =====
+async function setCreditLimit() {
+    const localEl = document.getElementById('creditLimitInputLocal');
+    const twdEl = document.getElementById('creditLimitInputTwd');
+    let val = parseFloat(localEl.value);
+    let valTwd = parseFloat(twdEl.value);
+
+    if (isNaN(val) && isNaN(valTwd)) {
+        await showAlert('請輸入額度（當地幣或台幣皆可）', { icon: '✏️' });
+        return;
+    }
+    if (isNaN(val)) {
+        setRateStatus('creditLimitRateStatus', 'loading', '正在抓取即時匯率...');
+        const rate = await fetchRate(currentTripCurrency());
+        if (rate == null) {
+            setRateStatus('creditLimitRateStatus', 'fail', '無法取得即時匯率，請改輸入當地幣金額');
+            return;
+        }
+        val = valTwd / rate;
+        setRateStatus('creditLimitRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+    }
+
+    updateTrip(currentTripId, t => { t.creditLimit = val; });
+    localEl.value = '';
+    twdEl.value = '';
+    renderDetail();
+}
+
+function renderCreditOverview(trip) {
+    const limit = trip.creditLimit || 0;
+    let spent = 0, spentTwd = 0;
+    trip.creditRecords.forEach(r => { spent += r.amount; spentTwd += r.amount * r.rate; });
+
+    // total spend across cash + credit (TWD)
+    let cashSpentTwd = 0;
+    trip.cashRecords.forEach(r => { cashSpentTwd += r.amount * r.rate; });
+    const totalTwd = cashSpentTwd + spentTwd;
+
+    document.getElementById('creditLimitVal').textContent = fmt(limit) + ' ' + trip.currency;
+    document.getElementById('creditSpentVal').textContent = fmt(spent) + ' ' + trip.currency;
+    document.getElementById('totalSpentTwd').textContent = 'NT$ ' + fmt(totalTwd);
+
+    // update top summary bar
+    const cashSpent = trip.cashRecords.reduce((s, r) => s + r.amount, 0);
+    const creditSpent = trip.creditRecords.reduce((s, r) => s + r.amount, 0);
+    document.getElementById('topCashSpentLocal').textContent = fmt(cashSpent) + ' ' + trip.currency;
+    document.getElementById('topCashSpent').textContent = 'NT$ ' + fmt(cashSpentTwd);
+    document.getElementById('topCreditSpentLocal').textContent = fmt(creditSpent) + ' ' + trip.currency;
+    document.getElementById('topCreditSpent').textContent = 'NT$ ' + fmt(spentTwd);
+    document.getElementById('topTotalSpentLocal').textContent = fmt(cashSpent + creditSpent) + ' ' + trip.currency;
+    document.getElementById('topTotalSpent').textContent = 'NT$ ' + fmt(totalTwd);
+}
+
+async function clearCreditLimit() {
+    const ok = await showConfirm('確定將信用卡額度清零？此動作無法復原。', { icon: '🗑️', danger: true, confirmText: '清零' });
+    if (!ok) return;
+    updateTrip(currentTripId, t => { t.creditLimit = 0; });
+    renderDetail();
+}
+
+function exportExcel() {
+    const trip = getTrip(currentTripId);
+    if (!trip) return;
+
+    // Cash sheet
+    const cashHeaders = ['日期', '項目', `金額 (${trip.currency})`, '匯率 (1 ${trip.currency}=TWD)', '台幣金額 (NT$)', '備註'];
+    const cashRows = trip.cashRecords.map(r => [
+        r.date,
+        r.item,
+        r.amount,
+        r.rate,
+        Math.ceil(r.amount * r.rate),
+        r.note || ''
+    ]);
+    // summary rows
+    const cashTotal = trip.cashRecords.reduce((s, r) => s + r.amount, 0);
+    const cashTotalTwd = trip.cashRecords.reduce((s, r) => s + r.amount * r.rate, 0);
+    cashRows.push([]);
+    cashRows.push(['現金預算', trip.cashBudget || 0, '', '', '', '']);
+    cashRows.push(['現金支出合計', cashTotal, '', '', Math.ceil(cashTotalTwd), '']);
+    cashRows.push(['現金餘額', (trip.cashBudget || 0) - cashTotal, '', '', '', '']);
+
+    // Credit sheet
+    const creditHeaders = ['日期', '項目', `金額 (${trip.currency})`, `匯率 (1 ${trip.currency}=TWD)`, '台幣金額 (NT$)', '備註'];
+    const creditRows = trip.creditRecords.map(r => [
+        r.date,
+        r.item,
+        r.amount,
+        r.rate,
+        Math.ceil(r.amount * r.rate),
+        r.note || ''
+    ]);
+    const creditTotal = trip.creditRecords.reduce((s, r) => s + r.amount, 0);
+    const creditTotalTwd = trip.creditRecords.reduce((s, r) => s + r.amount * r.rate, 0);
+    creditRows.push([]);
+    creditRows.push(['信用卡額度', trip.creditLimit || 0, '', '', '', '']);
+    creditRows.push(['信用卡支出合計', creditTotal, '', '', Math.ceil(creditTotalTwd), '']);
+
+    // Summary sheet
+    let cashSpentTwd = trip.cashRecords.reduce((s, r) => s + r.amount * r.rate, 0);
+    let creditSpentTwd = trip.creditRecords.reduce((s, r) => s + r.amount * r.rate, 0);
+    const summaryRows = [
+        ['旅程名稱', trip.name],
+        ['幣別', trip.currency],
+        ['國家', trip.country || ''],
+        ['城市', trip.city || ''],
+        ['出發日期', trip.start || ''],
+        ['結束日期', trip.end || ''],
+        [],
+        ['項目', `${trip.currency}`, 'TWD (NT$)'],
+        ['現金預算', trip.cashBudget || 0, ''],
+        ['現金支出', cashTotal, Math.ceil(cashSpentTwd)],
+        ['現金餘額', (trip.cashBudget || 0) - cashTotal, ''],
+        ['信用卡額度', trip.creditLimit || 0, ''],
+        ['信用卡支出', creditTotal, Math.ceil(creditSpentTwd)],
+        [],
+        ['總支出 (TWD)', '', Math.ceil(cashSpentTwd + creditSpentTwd)],
+    ];
+
+    const wb = XLSX.utils.book_new();
+
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSummary['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, '總覽');
+
+    const wsCash = XLSX.utils.aoa_to_sheet([cashHeaders, ...cashRows]);
+    wsCash['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsCash, '現金支出');
+
+    const wsCredit = XLSX.utils.aoa_to_sheet([creditHeaders, ...creditRows]);
+    wsCredit['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsCredit, '信用卡支出');
+
+    const filename = `${trip.name}_記帳_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+}
+
+async function addCreditRecord() {
+    const date = document.getElementById('creditDate').value;
+    const item = document.getElementById('creditItem').value.trim();
+    const amount = parseFloat(document.getElementById('creditAmount').value);
+    const note = document.getElementById('creditNote').value.trim();
+
+    if (!date || !item || isNaN(amount)) {
+        await showAlert('請填寫日期、項目與金額', { icon: '✏️' });
+        return;
+    }
+
+    setRateStatus('creditRateStatus', 'loading', '正在抓取當下即時匯率...');
+    let rate = await fetchRate(currentTripCurrency());
+    if (rate == null) {
+        clearRateStatus('creditRateStatus');
+        const manualRate = await showRateInputModal(currentTripCurrency());
+        if (manualRate == null) return;
+        rate = manualRate;
+    } else {
+        lastFetchedRate = rate;
+        setRateStatus('creditRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+    }
+
+    updateTrip(currentTripId, t => {
+        t.creditRecords.unshift({ id: uid(), date, item, amount, rate, note });
+    });
+
+    document.getElementById('creditDate').value = '';
+    document.getElementById('creditItem').value = '';
+    document.getElementById('creditAmount').value = '';
+    document.getElementById('creditNote').value = '';
+
+    creditPageNum = 1;
+    renderDetail();
+}
+
+async function deleteCreditRecord(id) {
+    const ok = await showConfirm('確定刪除這筆紀錄？', { icon: '🗑️', danger: true, confirmText: '刪除' });
+    if (!ok) return;
+    updateTrip(currentTripId, t => {
+        t.creditRecords = t.creditRecords.filter(r => r.id !== id);
+    });
+    renderDetail();
+}
+
+function renderCreditRecords() {
+    const trip = getTrip(currentTripId);
+    if (!trip) return;
+    const search = (document.getElementById('creditSearch').value || '').toLowerCase();
+
+    let records = trip.creditRecords.slice();
+    if (search) {
+        records = records.filter(r =>
+            r.item.toLowerCase().includes(search) || (r.note||'').toLowerCase().includes(search)
+        );
+    }
+
+    const listEl = document.getElementById('creditRecordsList');
+    const pagEl = document.getElementById('creditPagination');
+
+    if (records.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">尚無紀錄</div>';
+        pagEl.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(records.length / RECORDS_PER_PAGE);
+    if (creditPageNum > totalPages) creditPageNum = totalPages;
+    if (creditPageNum < 1) creditPageNum = 1;
+
+    const startIdx = (creditPageNum - 1) * RECORDS_PER_PAGE;
+    const pageRecords = records.slice(startIdx, startIdx + RECORDS_PER_PAGE);
+
+    listEl.innerHTML = pageRecords.map(r => `
+        <div class="record-item">
+            <div class="record-date">${escapeHtml(r.date)}</div>
+            <div class="record-desc">${escapeHtml(r.item)}${r.note ? `<span class="record-note">${escapeHtml(r.note)}</span>` : ''}</div>
+            <div class="record-rate">匯率 1 ${escapeHtml(trip.currency)} = ${r.rate} TWD</div>
+            <div class="record-amounts">
+                <div class="record-amount-orig">${fmt(r.amount)} ${escapeHtml(trip.currency)}</div>
+                <div class="record-amount-twd">≈ NT$ ${fmt(r.amount * r.rate)}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteCreditRecord('${r.id}')">刪除</button>
+        </div>
+    `).join('');
+
+    renderPagination(pagEl, totalPages, creditPageNum, p => { creditPageNum = p; renderCreditRecords(); });
+}
+
+// ===== Shared pagination renderer =====
+function renderPagination(el, totalPages, current, onChange) {
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+    let html = `<button class="page-btn" ${current===1?'disabled':''} data-p="${current-1}">‹ 上一頁</button>`;
+    for (let i=1; i<=totalPages; i++) {
+        html += `<button class="page-btn ${i===current?'active':''}" data-p="${i}">${i}</button>`;
+    }
+    html += `<button class="page-btn" ${current===totalPages?'disabled':''} data-p="${current+1}">下一頁 ›</button>`;
+    el.innerHTML = html;
+    el.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const p = parseInt(btn.dataset.p);
+            if (!isNaN(p)) onChange(p);
+        });
+    });
+}
+
+// ===== Init =====
+renderTripList();
+initFirestore();
+</script>
+</body>
+</html>
