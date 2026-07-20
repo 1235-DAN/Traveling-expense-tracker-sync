@@ -1452,6 +1452,23 @@ function renderPagination(el, totalPages, current, onChange) {
 // ===== Init =====
 renderTripList();
 initFirestore();
+
+// Expose functions to global scope (required for onclick in ES module)
+window.createTrip = createTrip;
+window.goToList = goToList;
+window.openTrip = openTrip;
+window.deleteTrip = deleteTrip;
+window.switchTab = switchTab;
+window.changeTripPage = changeTripPage;
+window.addCashBudget = addCashBudget;
+window.clearCashBudget = clearCashBudget;
+window.addCashRecord = addCashRecord;
+window.deleteCashRecord = deleteCashRecord;
+window.setCreditLimit = setCreditLimit;
+window.clearCreditLimit = clearCreditLimit;
+window.addCreditRecord = addCreditRecord;
+window.deleteCreditRecord = deleteCreditRecord;
+window.exportExcel = exportExcel;
 </script>
 <script>
 if ('serviceWorker' in navigator) {
