@@ -1,50 +1,57 @@
-const CACHE_NAME = 'travel-expense-v4';
-const CORE_ASSETS = [
+const CACHE_NAME = 'travel-expense-v5';
+const ASSETS = [
+    './',
     './index.html',
     './manifest.json',
     './icon-192.png',
     './icon-512.png',
+    'https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;600&family=Noto+Sans+TC:wght@400;700&display=swap',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 
 // Install: cache core assets
 self.addEventListener('install', e => {
     e.waitUntil(
-        caches.open(CACHE_NAME).then(cache =>
-            Promise.allSettled(CORE_ASSETS.map(url => cache.add(url)))
-        )
+        caches.open(CACHE_NAME).then(cache => {
+            return Promise.allSettled(ASSETS.map(url => cache.add(url)));
+        })
     );
-    self.skipWaiting(); // activate immediately
+    self.skipWaiting();
 });
 
-// Activate: wipe ALL old caches
+// Activate: clean old caches
 self.addEventListener('activate', e => {
     e.waitUntil(
         caches.keys().then(keys =>
-            Promise.all(keys.map(k => caches.delete(k))) // delete everything including v1/v2/v3
-        ).then(() => self.clients.claim())
+            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+        )
     );
+    self.clients.claim();
 });
 
-// Fetch: network-first for HTML/JS (always get latest), cache fallback for offline
+// Fetch: cache-first for assets, network-first for Firebase
 self.addEventListener('fetch', e => {
     const url = e.request.url;
 
-    // Firebase, exchange rate APIs → network only, no cache
-    if (url.includes('googleapis.com') ||
+    // Firebase & exchange rate API → always network, fallback cache
+    if (url.includes('firestore.googleapis.com') ||
         url.includes('firebase') ||
-        url.includes('gstatic.com/firebasejs') ||
         url.includes('er-api.com') ||
         url.includes('exchangerate')) {
-        e.respondWith(fetch(e.request));
+        e.respondWith(
+            fetch(e.request).catch(() => caches.match(e.request))
+        );
         return;
     }
 
-    // HTML & JS → network first, update cache, fallback to cache
+    // Everything else → cache first, then network
     e.respondWith(
-        fetch(e.request).then(response => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-            return response;
-        }).catch(() => caches.match(e.request))
+        caches.match(e.request).then(cached => {
+            return cached || fetch(e.request).then(response => {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+                return response;
+            });
+        })
     );
 });

@@ -341,7 +341,6 @@ select option { background: var(--bg-card); color: var(--text-primary); }
     .chrome-tab { padding: 10px 16px 12px; font-size: 0.85rem; }
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -564,7 +563,7 @@ select option { background: var(--bg-card); color: var(--text-primary); }
             <div class="records-section">
                 <div class="records-header-row">
                     <div class="records-header">現金消費紀錄</div>
-                    <button class="auto secondary export-btn" onclick="exportExcel()"><span>📥 匯出 Excel</span></button>
+                    <button class="auto secondary export-btn" onclick="exportCSV()"><span>📥 匯出 CSV</span></button>
                 </div>
                 <div class="search-bar">
                     <input type="text" id="cashSearch" placeholder="搜尋項目或備註..." oninput="renderCashRecords()">
@@ -604,7 +603,7 @@ select option { background: var(--bg-card); color: var(--text-primary); }
             <div class="records-section">
                 <div class="records-header-row">
                     <div class="records-header">信用卡消費紀錄</div>
-                    <button class="auto secondary export-btn" onclick="exportExcel()"><span>📥 匯出 Excel</span></button>
+                    <button class="auto secondary export-btn" onclick="exportCSV()"><span>📥 匯出 CSV</span></button>
                 </div>
                 <div class="search-bar">
                     <input type="text" id="creditSearch" placeholder="搜尋項目或備註..." oninput="renderCreditRecords()">
@@ -1266,81 +1265,71 @@ async function clearCreditLimit() {
     renderDetail();
 }
 
-function exportExcel() {
+function csvCell(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function csvRow(arr) { return arr.map(csvCell).join(','); }
+
+function recordCreatedAt(id) {
+    // id 格式：id_<timestamp>_<random>，從中還原新增時間
+    const m = /^id_(\d{10,})_/.exec(id || '');
+    if (!m) return '';
+    const d = new Date(Number(m[1]));
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function exportCSV() {
     const trip = getTrip(currentTripId);
     if (!trip) return;
+    const cur = trip.currency;
 
-    // Cash sheet
-    const cashHeaders = ['日期', '項目', `金額 (${trip.currency})`, '匯率 (1 ${trip.currency}=TWD)', '台幣金額 (NT$)', '備註'];
-    const cashRows = trip.cashRecords.map(r => [
-        r.date,
-        r.item,
-        r.amount,
-        r.rate,
-        Math.ceil(r.amount * r.rate),
-        r.note || ''
-    ]);
-    // summary rows
-    const cashTotal = trip.cashRecords.reduce((s, r) => s + r.amount, 0);
-    const cashTotalTwd = trip.cashRecords.reduce((s, r) => s + r.amount * r.rate, 0);
-    cashRows.push([]);
-    cashRows.push(['現金預算', trip.cashBudget || 0, '', '', '', '']);
-    cashRows.push(['現金支出合計', cashTotal, '', '', Math.ceil(cashTotalTwd), '']);
-    cashRows.push(['現金餘額', (trip.cashBudget || 0) - cashTotal, '', '', '', '']);
+    // 把現金與信用卡合併成一張明細表，依消費日期排序
+    const all = [
+        ...trip.cashRecords.map(r => ({ type: '現金', r })),
+        ...trip.creditRecords.map(r => ({ type: '信用卡', r }))
+    ].sort((a, b) => (a.r.date || '').localeCompare(b.r.date || '') || (a.r.id || '').localeCompare(b.r.id || ''));
 
-    // Credit sheet
-    const creditHeaders = ['日期', '項目', `金額 (${trip.currency})`, `匯率 (1 ${trip.currency}=TWD)`, '台幣金額 (NT$)', '備註'];
-    const creditRows = trip.creditRecords.map(r => [
-        r.date,
-        r.item,
-        r.amount,
-        r.rate,
-        Math.ceil(r.amount * r.rate),
-        r.note || ''
-    ]);
-    const creditTotal = trip.creditRecords.reduce((s, r) => s + r.amount, 0);
-    const creditTotalTwd = trip.creditRecords.reduce((s, r) => s + r.amount * r.rate, 0);
-    creditRows.push([]);
-    creditRows.push(['信用卡額度', trip.creditLimit || 0, '', '', '', '']);
-    creditRows.push(['信用卡支出合計', creditTotal, '', '', Math.ceil(creditTotalTwd), '']);
+    const lines = [];
+    lines.push(csvRow(['序號', '旅程', '國家', '城市', '付款方式', '消費日期', '項目', '備註', '幣別',
+        `金額(${cur})`, `匯率(1 ${cur}=TWD)`, '台幣金額(TWD,無條件進位)', '記錄新增時間']));
 
-    // Summary sheet
-    let cashSpentTwd = trip.cashRecords.reduce((s, r) => s + r.amount * r.rate, 0);
-    let creditSpentTwd = trip.creditRecords.reduce((s, r) => s + r.amount * r.rate, 0);
-    const summaryRows = [
-        ['旅程名稱', trip.name],
-        ['幣別', trip.currency],
-        ['國家', trip.country || ''],
-        ['城市', trip.city || ''],
-        ['出發日期', trip.start || ''],
-        ['結束日期', trip.end || ''],
-        [],
-        ['項目', `${trip.currency}`, 'TWD (NT$)'],
-        ['現金預算', trip.cashBudget || 0, ''],
-        ['現金支出', cashTotal, Math.ceil(cashSpentTwd)],
-        ['現金餘額', (trip.cashBudget || 0) - cashTotal, ''],
-        ['信用卡額度', trip.creditLimit || 0, ''],
-        ['信用卡支出', creditTotal, Math.ceil(creditSpentTwd)],
-        [],
-        ['總支出 (TWD)', '', Math.ceil(cashSpentTwd + creditSpentTwd)],
-    ];
+    all.forEach((x, i) => {
+        const r = x.r;
+        lines.push(csvRow([
+            i + 1, trip.name, trip.country || '', trip.city || '', x.type,
+            r.date, r.item, r.note || '', cur,
+            r.amount, r.rate, Math.ceil(r.amount * r.rate), recordCreatedAt(r.id)
+        ]));
+    });
 
-    const wb = XLSX.utils.book_new();
+    // 彙總區（與明細隔一行）
+    const cashSpent = trip.cashRecords.reduce((s, r) => s + r.amount, 0);
+    const cashSpentTwd = trip.cashRecords.reduce((s, r) => s + r.amount * r.rate, 0);
+    const creditSpent = trip.creditRecords.reduce((s, r) => s + r.amount, 0);
+    const creditSpentTwd = trip.creditRecords.reduce((s, r) => s + r.amount * r.rate, 0);
+    const budget = trip.cashBudget || 0;
+    lines.push('');
+    lines.push(csvRow(['彙總', '項目', `金額(${cur})`, '台幣金額(TWD)']));
+    lines.push(csvRow(['', '現金預算', budget, '']));
+    lines.push(csvRow(['', '現金支出', cashSpent, Math.ceil(cashSpentTwd)]));
+    lines.push(csvRow(['', '現金餘額', budget - cashSpent, '']));
+    lines.push(csvRow(['', '信用卡額度', trip.creditLimit || 0, '']));
+    lines.push(csvRow(['', '信用卡支出', creditSpent, Math.ceil(creditSpentTwd)]));
+    lines.push(csvRow(['', '總支出', cashSpent + creditSpent, Math.ceil(cashSpentTwd + creditSpentTwd)]));
 
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-    wsSummary['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(wb, wsSummary, '總覽');
-
-    const wsCash = XLSX.utils.aoa_to_sheet([cashHeaders, ...cashRows]);
-    wsCash['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsCash, '現金支出');
-
-    const wsCredit = XLSX.utils.aoa_to_sheet([creditHeaders, ...creditRows]);
-    wsCredit['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsCredit, '信用卡支出');
-
-    const filename = `${trip.name}_記帳_${new Date().toISOString().slice(0,10)}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    // 加 UTF-8 BOM，Excel 開啟中文才不會亂碼
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const safeName = String(trip.name).replace(/[\\/:*?"<>|]/g, '_');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safeName}_記帳明細_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 async function addCreditRecord() {
@@ -1468,7 +1457,7 @@ window.setCreditLimit = setCreditLimit;
 window.clearCreditLimit = clearCreditLimit;
 window.addCreditRecord = addCreditRecord;
 window.deleteCreditRecord = deleteCreditRecord;
-window.exportExcel = exportExcel;
+window.exportCSV = exportCSV;
 </script>
 <script>
 if ('serviceWorker' in navigator) {
