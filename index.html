@@ -1,1472 +1,2186 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>旅遊記帳本</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記帳本 - 收支管理</title>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#b07d3a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="記帳本">
+    <link rel="apple-touch-icon" href="icon192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;600&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            /* 背景：深色 */
+            --bg-main: #1a1510;
+            --bg-card: #f5f0e8;
+            --bg-card2: #ede5d8;
+            /* 文字 */
+            --text-primary: #2a1f14;
+            --text-secondary: #7a6a57;
+            --text-on-dark: #e8e0d4;
+            --text-sec-dark: #9a8e80;
+            /* 功能色 */
+            --income-color: #2d6b3f;
+            --expense-color: #8b3a2a;
+            --border-color: rgba(180,155,120,0.3);
+            --border-dark: rgba(255,255,255,0.07);
+            --accent: #b5813a;
+            --accent2: #7a9e6a;
+            --shadow: rgba(0,0,0,0.45);
+            --shadow-card: rgba(60,40,20,0.12);
+            --credit-color: #3d5f8a;
+            --radius: 18px;
+            --radius-sm: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 24px;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                radial-gradient(ellipse at 15% 20%, rgba(181,129,58,0.18) 0%, transparent 45%),
+                radial-gradient(ellipse at 85% 75%, rgba(122,158,106,0.14) 0%, transparent 45%),
+                radial-gradient(ellipse at 50% 50%, rgba(90,60,30,0.25) 0%, transparent 65%);
+            z-index: -1; pointer-events: none;
+        }
+        .container { max-width: 1240px; margin: 0 auto; }
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1a1510">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="旅遊記帳">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="mobile-web-app-capable" content="yes">
-<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;600&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root {
-    --bg-main: #1a1510;
-    --bg-card: #f5f0e8;
-    --bg-card2: #ede5d8;
-    --text-primary: #2a1f14;
-    --text-secondary: #7a6a57;
-    --text-on-dark: #e8e0d4;
-    --text-sec-dark: #9a8e80;
-    --income-color: #2d6b3f;
-    --expense-color: #8b3a2a;
-    --border-color: rgba(180,155,120,0.3);
-    --border-dark: rgba(255,255,255,0.07);
-    --accent: #b5813a;
-    --accent2: #7a9e6a;
-    --shadow: rgba(0,0,0,0.45);
-    --shadow-card: rgba(60,40,20,0.12);
-    --credit-color: #3d5f8a;
-    --radius: 18px;
-    --radius-sm: 12px;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--bg-main);
-    color: var(--text-primary);
-    line-height: 1.6;
-    padding: 24px;
-    min-height: 100vh;
-}
-body::before {
-    content: '';
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background:
-        radial-gradient(ellipse at 15% 20%, rgba(181,129,58,0.18) 0%, transparent 45%),
-        radial-gradient(ellipse at 85% 75%, rgba(122,158,106,0.14) 0%, transparent 45%),
-        radial-gradient(ellipse at 50% 50%, rgba(90,60,30,0.25) 0%, transparent 65%);
-    z-index: -1; pointer-events: none;
-}
-.container { max-width: 1100px; margin: 0 auto; }
+        /* ── Header ── */
+        header {
+            text-align: center; margin-bottom: 28px; padding: 48px 24px 40px;
+            background: linear-gradient(135deg, rgba(181,129,58,0.18), rgba(122,158,106,0.12));
+            border: 1px solid rgba(181,129,58,0.25);
+            border-radius: 24px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,240,232,0.06);
+            backdrop-filter: blur(20px); position: relative; overflow: hidden;
+        }
+        header::before {
+            content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px;
+            border-radius: 50%; background: radial-gradient(circle, rgba(181,129,58,0.18), transparent 70%);
+            animation: float 8s ease-in-out infinite; pointer-events: none;
+        }
+        header::after {
+            content: ''; position: absolute; bottom: -60px; left: -60px; width: 260px; height: 260px;
+            border-radius: 50%; background: radial-gradient(circle, rgba(122,158,106,0.12), transparent 70%);
+            animation: float 10s ease-in-out infinite reverse; pointer-events: none;
+        }
+        @keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(10px,-15px)} }
+        h1 {
+            font-family: 'Crimson Pro', serif; font-size: 3.8rem; font-weight: 600;
+            background: linear-gradient(135deg, #f5f0e8, #d4a96a, #a3c491);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 10px; position: relative; z-index: 1;
+            letter-spacing: 0.04em;
+        }
+        .subtitle {
+            font-size: 0.95rem; color: rgba(232,224,212,0.6); font-weight: 300;
+            letter-spacing: 0.3em; text-transform: uppercase; position: relative; z-index: 1;
+        }
 
-/* Header */
-header {
-    text-align: center; margin-bottom: 28px; padding: 48px 24px 40px;
-    background: linear-gradient(135deg, rgba(181,129,58,0.18), rgba(122,158,106,0.12));
-    border: 1px solid rgba(181,129,58,0.25);
-    border-radius: 24px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,240,232,0.06);
-    backdrop-filter: blur(20px); position: relative; overflow: hidden;
-}
-header::before {
-    content: ''; position: absolute; top: -80px; right: -80px; width: 320px; height: 320px;
-    border-radius: 50%; background: radial-gradient(circle, rgba(181,129,58,0.18), transparent 70%);
-    animation: float 8s ease-in-out infinite; pointer-events: none;
-}
-header::after {
-    content: ''; position: absolute; bottom: -60px; left: -60px; width: 260px; height: 260px;
-    border-radius: 50%; background: radial-gradient(circle, rgba(122,158,106,0.12), transparent 70%);
-    animation: float 10s ease-in-out infinite reverse; pointer-events: none;
-}
-@keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(10px,-15px)} }
-h1 {
-    font-family: 'Crimson Pro', serif; font-size: 3.2rem; font-weight: 600;
-    background: linear-gradient(135deg, #f5f0e8, #d4a96a, #a3c491);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text; margin-bottom: 10px; position: relative; z-index: 1;
-    letter-spacing: 0.04em;
-}
-.subtitle {
-    font-size: 0.95rem; color: rgba(232,224,212,0.6); font-weight: 300;
-    letter-spacing: 0.3em; text-transform: uppercase; position: relative; z-index: 1;
-}
+        /* ── Glass card mixin ── */
+        .glass {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
+        }
 
-.glass {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
-}
+        /* ── 總覽橫幅 ── */
+        .overview-banner {
+            display: grid; grid-template-columns: repeat(6, 1fr);
+            gap: 12px; margin-bottom: 20px;
+        }
+        .ov-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 20px 16px; text-align: center;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            box-shadow: 0 4px 20px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.8) inset;
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: var(--text-primary);
+        }
+        .ov-item:hover { transform: translateY(-3px); box-shadow: 0 10px 30px var(--shadow-card); }
+        .ov-divider { display: none; }
+        .ov-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; white-space: nowrap; }
+        .ov-value { font-family: 'Crimson Pro', serif; font-size: 1.65rem; font-weight: 600; color: var(--text-primary); line-height: 1.1; }
+        .ov-value.income-val { color: var(--income-color); }
+        .ov-value.expense-val { color: var(--expense-color); }
+        .ov-value.credit-val { color: var(--credit-color); }
+        .ov-sub { font-size: 0.68rem; color: var(--text-secondary); }
+        .ov-bank { grid-column: span 1; }
+        .ov-bank-edit { display: flex; gap: 6px; margin-top: 8px; width: 100%; }
+        .ov-bank-edit input { flex: 1; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--border-color); background: var(--bg-card2); color: var(--text-primary); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; min-width: 0; }
+        .ov-bank-edit input:focus { outline: none; border-color: var(--accent); background: white; }
+        .ov-save-btn { width: auto !important; padding: 7px 11px !important; font-size: 0.75rem !important; white-space: nowrap; border-radius: 8px !important; }
 
-/* buttons / inputs */
-button {
-    width: 100%; padding: 13px; border: none;
-    background: linear-gradient(135deg, #b5813a, #c9973f);
-    color: white; font-size: 0.95rem;
-    font-weight: 700; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
-    transition: all 0.3s ease; letter-spacing: 0.05em;
-    position: relative; overflow: hidden; border-radius: var(--radius-sm);
-    box-shadow: 0 4px 16px rgba(181,129,58,0.3);
-}
-button::before {
-    content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
-    border-radius: 50%; background: rgba(255,255,255,0.25);
-    transition: width 0.5s, height 0.5s, top 0.5s, left 0.5s;
-    transform: translate(-50%, -50%); z-index: 0;
-}
-button:hover::before { width: 300px; height: 300px; }
-button span { position: relative; z-index: 1; }
-button:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(181,129,58,0.4); }
-button.secondary { background: var(--bg-card2); color: var(--text-primary); box-shadow: none; border: 1px solid var(--border-color); }
-button.secondary:hover { box-shadow: 0 4px 16px var(--shadow-card); }
-button.danger { background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); box-shadow: none; }
-button.danger:hover { background: rgba(139,58,42,0.1); box-shadow: none; }
-button.small, button.auto { width: auto; }
+        /* ── API Key 設定 ── */
+        .settings-bar {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm); padding: 14px 20px; margin-bottom: 0;
+            box-shadow: 0 2px 12px var(--shadow-card); display: flex; align-items: center;
+            gap: 12px; flex-wrap: wrap;
+            border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+        }
+        .settings-label { font-weight: 700; color: var(--text-secondary); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+        .settings-bar input { flex: 1; min-width: 180px; padding: 9px 13px; }
+        .settings-bar button { width: auto; padding: 9px 18px; }
+        .key-badge { font-size: 0.78rem; padding: 5px 12px; border-radius: 20px; white-space: nowrap; font-weight: 600; }
+        .key-badge.ok { background: rgba(45,107,63,0.12); color: var(--income-color); border: 1px solid rgba(45,107,63,0.25); }
+        .key-badge.none { background: rgba(139,58,42,0.1); color: var(--expense-color); border: 1px solid rgba(139,58,42,0.25); }
+        .settings-bar button[onclick*="testApiKey"] { background: linear-gradient(135deg, #3d5f8a, #2a4a6b) !important; box-shadow: 0 4px 12px rgba(61,95,138,0.3) !important; width: auto !important; padding: 9px 18px !important; }
 
-.form-group { margin-bottom: 18px; }
-label { display: block; margin-bottom: 7px; font-weight: 600; color: var(--text-secondary); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
-input, select {
-    width: 100%; padding: 12px 15px; border: 1px solid var(--border-color);
-    background: var(--bg-card2); color: var(--text-primary); font-size: 0.95rem;
-    font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s ease;
-    border-radius: var(--radius-sm);
-}
-input::placeholder { color: rgba(122,106,87,0.5); }
-input:focus, select:focus { outline: none; border-color: var(--accent); background: white; box-shadow: 0 0 0 3px rgba(181,129,58,0.12); }
-select option { background: var(--bg-card); color: var(--text-primary); }
-.row { display: flex; gap: 12px; }
-.row > * { flex: 1; }
+        /* ── Chrome 風格分頁 ── */
+        .chrome-tab-wrap {
+            background: var(--bg-card2); border: 1px solid var(--border-color);
+            border-top: none; padding: 0 20px; margin-bottom: 28px;
+            border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm);
+            box-shadow: 0 4px 20px var(--shadow-card);
+        }
+        .chrome-tabs { display: flex; gap: 4px; padding-top: 10px; }
+        .chrome-tab {
+            padding: 10px 28px 12px; border: 1px solid transparent; border-bottom: none;
+            background: rgba(180,155,120,0.2); color: var(--text-secondary);
+            font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans TC', sans-serif;
+            cursor: pointer; border-radius: 10px 10px 0 0; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 7px; position: relative; top: 1px;
+            text-transform: none; letter-spacing: 0.02em; width: auto;
+        }
+        .chrome-tab::before { display: none; }
+        .chrome-tab:hover { background: rgba(245,240,232,0.8); color: var(--text-primary); }
+        .chrome-tab.active {
+            background: var(--bg-card); color: var(--text-primary);
+            border-color: var(--border-color); border-bottom-color: var(--bg-card);
+            box-shadow: 0 -2px 10px rgba(181,129,58,0.1);
+        }
+        .chrome-tab-icon { font-size: 1rem; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-/* ===== Trip List Page ===== */
-#tripListPage .glass { padding: 32px; margin-bottom: 24px; }
-.trip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
-.trip-card {
-    background: var(--bg-card2); border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm); padding: 22px; cursor: pointer;
-    transition: all 0.2s ease; position: relative;
-}
-.trip-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px var(--shadow-card); background: white; }
-.trip-card-name { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
-.trip-card-loc { font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 4px; }
-.trip-card-date { font-size: 0.82rem; color: var(--text-secondary); }
-.trip-card-currency { display: inline-block; margin-top: 10px; font-size: 0.75rem; padding: 4px 12px; border-radius: 20px; background: rgba(181,129,58,0.12); color: var(--accent); border: 1px solid rgba(181,129,58,0.25); font-weight: 700; }
-.trip-card-del { position: absolute; top: 14px; right: 14px; width: auto; padding: 5px 10px; font-size: 0.75rem; background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); box-shadow: none; }
-.trip-card-del:hover { background: rgba(139,58,42,0.1); box-shadow: none; transform: none; }
-.empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); font-style: italic; }
+        /* ── 月份選擇器 ── */
+        .month-picker-bar {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: var(--radius); padding: 28px 32px; margin-bottom: 24px;
+            box-shadow: 0 4px 24px var(--shadow-card);
+        }
+        .month-picker-label {
+            font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600;
+            margin-bottom: 18px; color: var(--text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .month-picker-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .month-grid { display: flex; gap: 7px; flex-wrap: wrap; flex: 1; }
+        .month-btn {
+            width: auto; padding: 8px 15px; border: 1px solid var(--border-color);
+            background: var(--bg-card2); color: var(--text-secondary);
+            font-size: 0.88rem; font-weight: 600; cursor: pointer; border-radius: 10px;
+            transition: all 0.2s ease; letter-spacing: 0.01em; text-transform: none;
+        }
+        .month-btn::before { display: none; }
+        .month-btn:hover { border-color: var(--accent); color: var(--text-primary); background: white; }
+        .month-btn.active {
+            background: linear-gradient(135deg, #b5813a, #c9973f);
+            color: white; border-color: transparent;
+            box-shadow: 0 2px 12px rgba(181,129,58,0.4);
+        }
+        /* ══ 年份自訂下拉 ══ */
+        .year-dropdown-wrap { position: relative; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); display: inline-block; }
+        .year-trigger {
+            width: auto; padding: 9px 18px 9px 16px; border: 1px solid var(--border-color);
+            background: var(--bg-card); color: var(--text-primary);
+            font-size: 0.95rem; font-weight: 700; cursor: pointer;
+            border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px;
+            font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s; box-shadow: 0 2px 8px var(--shadow-card);
+        }
+        .year-trigger::before { display: none; }
+        .year-trigger:hover { border-color: var(--accent); box-shadow: 0 4px 16px var(--shadow-card); transform: none; }
+        .year-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(176,125,58,0.15); }
+        .year-trigger-arrow { font-size: 0.75rem; color: var(--text-secondary); transition: transform 0.2s; }
+        .year-trigger.open .year-trigger-arrow { transform: rotate(180deg); }
+        .year-dropdown {
+            position: absolute; top: calc(100% + 6px); left: 0; z-index: 500;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm); box-shadow: 0 8px 32px var(--shadow);
+            overflow: hidden; min-width: 140px;
+            animation: dropIn 0.18s ease;
+        }
+        @keyframes dropIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .year-dropdown-inner { max-height: 260px; overflow-y: auto; padding: 6px; scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
+        .year-dropdown-inner::-webkit-scrollbar { width: 5px; }
+        .year-dropdown-inner::-webkit-scrollbar-track { background: transparent; }
+        .year-dropdown-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .year-option {
+            width: 100%; padding: 10px 16px; text-align: left; border: none;
+            background: transparent; color: var(--text-primary); font-size: 0.92rem;
+            font-weight: 600; cursor: pointer; border-radius: 8px; font-family: 'Noto Sans TC', sans-serif;
+            transition: all 0.15s; display: block;
+        }
+        .year-option::before { display: none; }
+        .year-option:hover { background: rgba(176,125,58,0.1); color: var(--accent); transform: none; box-shadow: none; }
+        .year-option.active { background: linear-gradient(135deg, var(--accent), #c9953a); color: white; box-shadow: 0 2px 8px rgba(176,125,58,0.3); }
+            margin-top: 16px; font-size: 0.83rem; color: var(--text-secondary);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .month-picker-hint::before { content: '💡'; font-style: normal; }
 
-/* pagination */
-.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
-.page-btn {
-    width: auto; padding: 8px 14px; border: 1px solid var(--border-color);
-    background: var(--bg-card2); color: var(--text-secondary);
-    font-size: 0.85rem; font-weight: 700; cursor: pointer; border-radius: 8px;
-    transition: all 0.2s ease; box-shadow: none;
-}
-.page-btn::before { display: none; }
-.page-btn:hover { border-color: var(--accent); color: var(--text-primary); background: white; }
-.page-btn.active { background: linear-gradient(135deg, #b5813a, #c9973f); color: white; border-color: transparent; box-shadow: 0 2px 12px rgba(181,129,58,0.4); }
-.page-btn:disabled { opacity: 0.4; cursor: default; }
-.page-btn:disabled:hover { transform:none; box-shadow:none; border-color: var(--border-color); background: var(--bg-card2); }
+        /* ── Forms & Cards ── */
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: var(--radius); padding: 28px;
+            box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 36px var(--shadow-card); }
+        .card.income { border-top: 3px solid var(--income-color); }
+        .card.expense { border-top: 3px solid var(--expense-color); }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+        .card-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: bold; }
+        .income .card-icon { background: rgba(45,107,63,0.12); color: var(--income-color); }
+        .expense .card-icon { background: rgba(139,58,42,0.12); color: var(--expense-color); }
+        .card-title { font-family: 'Crimson Pro', serif; font-size: 1.7rem; font-weight: 600; color: var(--text-primary); }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 7px; font-weight: 600; color: var(--text-secondary); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
+        input, select {
+            width: 100%; padding: 12px 15px; border: 1px solid var(--border-color);
+            background: var(--bg-card2); color: var(--text-primary); font-size: 0.95rem;
+            font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s ease;
+            border-radius: var(--radius-sm);
+        }
+        input::placeholder { color: rgba(122,106,87,0.5); }
+        input:focus, select:focus { outline: none; border-color: var(--accent); background: white; box-shadow: 0 0 0 3px rgba(181,129,58,0.12); }
+        select option { background: var(--bg-card); color: var(--text-primary); }
+        button {
+            width: 100%; padding: 13px; border: none;
+            background: linear-gradient(135deg, #b5813a, #c9973f);
+            color: white; font-size: 0.95rem;
+            font-weight: 700; font-family: 'Noto Sans TC', sans-serif; cursor: pointer;
+            transition: all 0.3s ease; letter-spacing: 0.05em;
+            position: relative; overflow: hidden; border-radius: var(--radius-sm);
+            box-shadow: 0 4px 16px rgba(181,129,58,0.3);
+        }
+        button::before {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
+            border-radius: 50%; background: rgba(255,255,255,0.25);
+            transition: width 0.5s, height 0.5s, top 0.5s, left 0.5s;
+            transform: translate(-50%, -50%); z-index: 0;
+        }
+        button:hover::before { width: 300px; height: 300px; }
+        button span { position: relative; z-index: 1; }
+        button:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(181,129,58,0.4); }
 
-/* ===== Detail Page ===== */
-#detailPage { display: none; }
-.back-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-.back-bar button { width: auto; }
-.trip-title { font-family: 'Crimson Pro', serif; font-size: 1.8rem; font-weight: 600; flex: 1; }
-.trip-sub { font-size: 0.85rem; color: rgba(232,224,212,0.7); }
+        /* ── 財務總覽 ── */
+        .summary { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset; }
+        .summary-header { font-family: 'Crimson Pro', serif; font-size: 1.9rem; font-weight: 600; margin-bottom: 26px; text-align: center; color: var(--text-primary); }
+        .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 28px; }
+        .stat-box { padding: 22px; text-align: center; border: 1px solid var(--border-color); background: var(--bg-card2); border-radius: var(--radius-sm); transition: all 0.3s ease; }
+        .stat-box:hover { transform: translateY(-4px); box-shadow: 0 6px 24px var(--shadow-card); background: white; }
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; font-weight: 600; }
+        .stat-value { font-family: 'Crimson Pro', serif; font-size: 2rem; font-weight: 600; color: var(--text-primary); }
+        .stat-box.income .stat-value { color: var(--income-color); }
+        .stat-box.expense .stat-value { color: var(--expense-color); }
+        .filter-section { display: flex; gap: 15px; margin-bottom: 22px; align-items: flex-end; }
+        .filter-group { flex: 1; }
+        .records-section { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--border-color); }
+        .records-header { font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
+        .record-item {
+            display: grid; grid-template-columns: 110px 1fr 90px 130px 90px 72px;
+            gap: 12px; padding: 16px 20px; margin-bottom: 10px;
+            border: 1px solid var(--border-color); background: var(--bg-card2);
+            border-radius: var(--radius-sm); align-items: center; transition: all 0.2s ease; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .record-item:hover { background: white; transform: translateX(4px); border-left: 3px solid var(--accent); }
+        .record-date { font-weight: 700; color: var(--text-secondary); font-size: 0.85rem; }
+        .record-description { font-size: 0.98rem; color: var(--text-primary); }
+        .record-category { font-size: 0.78rem; padding: 4px 10px; border-radius: 20px; text-align: center; font-weight: 700; background: rgba(181,129,58,0.1); color: var(--accent); border: 1px solid rgba(181,129,58,0.25); }
+        .record-amount { font-family: 'Crimson Pro', serif; font-size: 1.3rem; font-weight: 600; text-align: right; }
+        .record-item.income .record-amount { color: var(--income-color); }
+        .record-item.expense .record-amount { color: var(--expense-color); }
+        .record-type { font-size: 0.78rem; padding: 5px 10px; border-radius: 20px; text-align: center; font-weight: 700; }
+        .record-item.income .record-type { background: rgba(45,107,63,0.1); color: var(--income-color); border: 1px solid rgba(45,107,63,0.2); }
+        .record-item.expense .record-type { background: rgba(139,58,42,0.1); color: var(--expense-color); border: 1px solid rgba(139,58,42,0.2); }
+        .delete-btn { width: auto; padding: 7px 14px; background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; border-radius: 8px; box-shadow: none; }
+        .delete-btn:hover { background: rgba(139,58,42,0.1); transform: none; box-shadow: none; }
+        .delete-btn::before { display: none; }
+        .edit-btn { width: auto; padding: 7px 14px; background: transparent; color: var(--accent); border: 1px solid rgba(181,129,58,0.3); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; border-radius: 8px; box-shadow: none; font-family: 'Noto Sans TC', sans-serif; font-weight: 600; }
+        .edit-btn:hover { background: rgba(181,129,58,0.12); transform: none; box-shadow: none; }
+        .edit-btn::before { display: none; }
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); font-style: italic; }
 
-/* overview banner */
-.overview-banner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-.overview-banner.credit { grid-template-columns: repeat(2, 1fr); }
-.ov-item {
-    background: var(--bg-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm); padding: 18px 14px; text-align: center;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    box-shadow: 0 4px 20px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.8) inset;
-}
-.ov-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
-.ov-value { font-family: 'Crimson Pro', serif; font-size: 1.6rem; font-weight: 600; color: var(--text-primary); line-height: 1.1; }
-.ov-value.income-val { color: var(--income-color); }
-.ov-value.expense-val { color: var(--expense-color); }
-.ov-value.credit-val { color: var(--credit-color); }
-.ov-sub { font-size: 0.68rem; color: var(--text-secondary); }
-.ov-edit-row { display: flex; gap: 6px; margin-top: 8px; width: 100%; }
-.ov-edit-row input { flex: 1; padding: 7px 10px; font-size: 0.82rem; border-radius: 8px; }
-.ov-edit-row button { width: auto; padding: 7px 11px !important; font-size: 0.75rem !important; border-radius: 8px !important; }
+        /* ── 圖表 ── */
+        .charts-section { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--border-color); }
+        .charts-header { font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .chart-container { background: var(--bg-card2); padding: 22px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: 0 2px 12px var(--shadow-card); }
+        .chart-container.full-width { grid-column: span 2; }
+        .chart-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 16px; text-align: center; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+        canvas { max-height: 300px; }
 
-/* chrome tabs */
-.chrome-tab-wrap {
-    background: var(--bg-card2); border: 1px solid var(--border-color);
-    border-top: none; padding: 0 20px; margin-bottom: 24px;
-    border-bottom-left-radius: var(--radius-sm); border-bottom-right-radius: var(--radius-sm);
-    box-shadow: 0 4px 20px var(--shadow-card);
-}
-.chrome-tabs { display: flex; gap: 4px; padding-top: 10px; }
-.chrome-tab {
-    padding: 10px 28px 12px; border: 1px solid transparent; border-bottom: none;
-    background: rgba(180,155,120,0.2); color: var(--text-secondary);
-    font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans TC', sans-serif;
-    cursor: pointer; border-radius: 10px 10px 0 0; transition: all 0.2s ease;
-    display: flex; align-items: center; gap: 7px; position: relative; top: 1px;
-    width: auto; box-shadow: none;
-}
-.chrome-tab::before { display: none; }
-.chrome-tab:hover { background: rgba(245,240,232,0.8); color: var(--text-primary); transform: none; box-shadow: none; }
-.chrome-tab.active { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-color); border-bottom-color: var(--bg-card); box-shadow: 0 -2px 10px rgba(181,129,58,0.1); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+        /* ── 信用卡頁 ── */
+        .credit-top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .credit-card-visual {
+            background: linear-gradient(135deg, #2a3f5f 0%, #3d5f8a 50%, #2a3f5f 100%);
+            border-radius: 20px; padding: 32px; color: white;
+            box-shadow: 0 12px 40px rgba(61,95,138,0.4); position: relative; overflow: hidden;
+            min-height: 200px; display: flex; flex-direction: column; justify-content: space-between;
+            border: 1px solid rgba(96,165,250,0.2);
+        }
+        .credit-card-visual::before { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+        .credit-card-visual::after { content: ''; position: absolute; bottom: -50px; left: 20px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.04); }
+        .credit-card-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.65; margin-bottom: 4px; }
+        .credit-card-balance { font-family: 'Crimson Pro', serif; font-size: 2.8rem; font-weight: 600; }
+        .credit-card-row { display: flex; justify-content: space-between; align-items: flex-end; }
+        .credit-progress { margin-top: 14px; }
+        .progress-bar-bg { background: rgba(255,255,255,0.18); border-radius: 6px; height: 8px; overflow: hidden; }
+        .progress-bar-fill { background: white; height: 100%; border-radius: 6px; transition: width 0.5s ease; }
+        .progress-text { font-size: 0.78rem; opacity: 0.75; margin-top: 5px; }
+        .credit-card-chip { font-size: 1.8rem; opacity: 0.65; }
+        .credit-form-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 28px; box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset; border-top: 3px solid var(--credit-color); }
+        .credit-form-title { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); color: var(--credit-color); }
+        .credit-records { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 28px; box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset; margin-bottom: 20px; }
+        .month-separator { display: flex; justify-content: space-between; align-items: center; padding: 8px 18px; margin: 16px 0 8px; background: var(--bg-card); border-left: 4px solid var(--credit-color); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+        .month-label { font-weight: 700; font-size: 0.95rem; color: var(--credit-color); }
+        .month-total { font-size: 0.9rem; color: var(--text-muted); }
+        .credit-record-item { display: grid; grid-template-columns: 110px 1fr 90px 130px 72px; gap: 12px; padding: 15px 18px; margin-bottom: 10px; border: 1px solid var(--border-color); background: var(--bg-card2); border-radius: var(--radius-sm); align-items: center; transition: all 0.2s ease; animation: slideIn 0.3s ease; }
+        .credit-record-item:hover { background: white; transform: translateX(4px); border-left: 3px solid var(--credit-color); }
+        .credit-amount { font-family: 'Crimson Pro', serif; font-size: 1.25rem; font-weight: 600; color: var(--expense-color); text-align: right; }
 
-/* form card */
-.card {
-    background: var(--bg-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
-    box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
-}
-.card.expense { border-top: 3px solid var(--expense-color); }
-.card.credit { border-top: 3px solid var(--credit-color); }
-.card-title { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+        /* ── AI 助手含圓餅圖 ── */
+        .ai-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset; border-top: 3px solid var(--accent); }
+        .ai-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+        .ai-icon { font-size: 2rem; }
+        .ai-title { font-family: 'Crimson Pro', serif; font-size: 1.8rem; font-weight: 600; background: linear-gradient(135deg, #b5813a, #c9973f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .ai-body { display: grid; grid-template-columns: 320px 1fr; gap: 28px; align-items: start; }
+        .ai-pie-side { display: flex; flex-direction: column; align-items: center; background: var(--bg-card2); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 20px; }
+        .ai-pie-wrap { width: 100%; max-width: 280px; }
+        .ai-pie-hint { font-size: 0.76rem; color: var(--text-secondary); text-align: center; margin-top: 10px; font-style: italic; }
+        .ai-ctrl-side { display: flex; flex-direction: column; }
+        .ai-btn-col { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+        .ai-btn-col button { width: 100%; }
+        .ai-result { margin-top: 16px; padding: 18px; border: 1px solid var(--border-color); background: var(--bg-card2); min-height: 70px; white-space: pre-wrap; font-size: 0.92rem; line-height: 1.9; display: none; border-radius: var(--radius-sm); color: var(--text-primary); }
+        .ai-result.visible { display: block; }
+        .ai-loading { text-align: center; color: var(--text-secondary); font-style: italic; padding: 20px; }
+        .ai-key-row { display: flex; gap: 12px; margin-bottom: 18px; align-items: flex-end; }
+        .ai-key-row input { flex: 1; }
+        .ai-key-row button { width: auto; padding: 12px 22px; white-space: nowrap; }
+        .ai-key-status { font-size: 0.85rem; margin-bottom: 14px; padding: 8px 14px; border-radius: var(--radius-sm); }
+        .ai-key-status.ok { background: rgba(45,107,63,0.1); color: var(--income-color); border: 1px solid rgba(45,107,63,0.2); }
+        .ai-key-status.none { background: rgba(139,58,42,0.08); color: var(--expense-color); border: 1px solid rgba(139,58,42,0.2); }
+        .ai-btn-row { display: flex; gap: 14px; margin-top: 10px; }
+        .ai-btn-row button { flex: 1; }
 
-/* records list */
-.records-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 28px; box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset; }
-.records-header { font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600; margin-bottom: 18px; text-align: center; color: var(--text-primary); }
-.search-bar { margin-bottom: 18px; }
-.record-item {
-    display: grid; grid-template-columns: 100px 1fr 130px 1fr 70px;
-    gap: 12px; padding: 16px 18px; margin-bottom: 10px;
-    border: 1px solid var(--border-color); background: var(--bg-card2);
-    border-radius: var(--radius-sm); align-items: center; transition: all 0.2s ease;
-    animation: slideIn 0.3s ease;
-}
-@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
-.record-item:hover { background: white; transform: translateX(4px); border-left: 3px solid var(--accent); }
-.record-date { font-weight: 700; color: var(--text-secondary); font-size: 0.85rem; }
-.record-desc { font-size: 0.95rem; color: var(--text-primary); }
-.record-desc .record-note { display:block; font-size: 0.78rem; color: var(--text-secondary); margin-top:2px; font-style: italic; }
-.record-amounts { text-align: right; }
-.record-amount-orig { font-family: 'Crimson Pro', serif; font-size: 1.2rem; font-weight: 600; color: var(--expense-color); }
-.record-amount-twd { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
-.record-rate { font-size: 0.78rem; color: var(--text-secondary); }
-.delete-btn { width: auto; padding: 7px 14px; background: transparent; color: var(--expense-color); border: 1px solid rgba(139,58,42,0.3); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; border-radius: 8px; box-shadow: none; }
-.delete-btn:hover { background: rgba(139,58,42,0.1); transform: none; box-shadow: none; }
-.delete-btn::before { display: none; }
+        @media (max-width: 900px) {
+            .overview-banner { grid-template-columns: repeat(3,1fr); }
+            .main-grid, .credit-top-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            h1 { font-size: 2rem; }
+            .subtitle { font-size: 0.8rem; letter-spacing: 0.15em; }
+            header { padding: 28px 16px 24px; border-radius: 16px; }
 
-/* ===== Combined budget overview (above tabs) ===== */
-.combo-banner { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
-.combo-card {
-    background: var(--bg-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius); padding: 22px;
-    box-shadow: 0 4px 24px var(--shadow-card), 0 1px 0 rgba(255,255,255,0.9) inset;
-}
-.combo-card.credit-card-combo { border-top: 3px solid var(--credit-color); }
-.combo-card.cash-card-combo { border-top: 3px solid var(--income-color); }
-.combo-title { font-family: 'Crimson Pro', serif; font-size: 1.2rem; font-weight: 600; margin-bottom: 14px; }
-.combo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 10px; }
-.combo-stat { text-align: center; }
-.combo-stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 4px; }
-.combo-stat-value { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; }
-.combo-divider { display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 1.2rem; }
-.combo-edit-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color); }
-.combo-edit-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
-.combo-edit-row .swap-icon { text-align: center; color: var(--text-secondary); font-size: 1.1rem; }
-.combo-edit-row label { margin-bottom: 4px; }
-.combo-edit-actions { margin-top: 10px; }
-.rate-hint { font-size: 0.72rem; color: var(--text-secondary); margin-top: 8px; text-align: center; font-style: italic; }
-.rate-status { font-size: 0.75rem; text-align: center; margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; display: none; }
-.rate-status.show { display: block; }
-.rate-status.ok { background: rgba(45,107,63,0.1); color: var(--income-color); }
-.rate-status.fail { background: rgba(139,58,42,0.08); color: var(--expense-color); }
-.rate-status.loading { background: rgba(181,129,58,0.1); color: var(--accent); }
+            /* 總覽橫幅：2欄 */
+            .overview-banner { grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
+            .ov-bank { grid-column: span 2; }
+            .ov-item { padding: 14px 10px; border-radius: 10px; }
+            .ov-value { font-size: 1.35rem; }
+            .ov-label { font-size: 0.65rem; }
+            .ov-bank-edit { flex-direction: column; gap: 5px; }
+            .ov-save-btn { width: 100% !important; }
 
-/* ===== Sync Status ===== */
-.sync-status {
-    font-size: 0.78rem; padding: 5px 14px; border-radius: 20px;
-    font-weight: 600; letter-spacing: 0.04em; transition: all 0.3s;
-}
-.sync-status.ok { background: rgba(45,107,63,0.12); color: var(--income-color); border: 1px solid rgba(45,107,63,0.2); }
-.sync-status.err { background: rgba(139,58,42,0.1); color: var(--expense-color); border: 1px solid rgba(139,58,42,0.2); }
-.sync-status.loading { background: rgba(181,129,58,0.1); color: var(--accent); border: 1px solid rgba(181,129,58,0.2); }
+            /* 設定欄 */
+            .settings-bar { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; border-radius: 10px 10px 0 0; }
+            .settings-bar input { min-width: unset; }
+            .chrome-tab-wrap { border-radius: 0 0 10px 10px; padding: 0 10px; margin-bottom: 14px; }
+            .chrome-tab { padding: 8px 18px 10px; font-size: 0.85rem; }
 
-/* ===== Top Summary Bar ===== */
-.top-summary-bar {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: var(--bg-card2); border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm); padding: 14px 20px;
-}
-.top-summary-item { text-align: center; flex: 1; min-width: 90px; }
-.top-summary-item.highlight { flex: 1.3; }
-.top-summary-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 4px; }
-.top-summary-value { font-family: 'Crimson Pro', serif; font-size: 1.15rem; font-weight: 600; }
-.top-summary-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
-.top-summary-sep { font-size: 1.1rem; color: var(--text-secondary); font-weight: 300; flex: 0; }
+            /* 月份選擇器 */
+            .month-picker-bar { padding: 18px 14px; border-radius: 14px; margin-bottom: 14px; }
+            .month-picker-label { font-size: 1.1rem; margin-bottom: 12px; }
+            .month-btn { padding: 7px 11px; font-size: 0.82rem; }
+            .year-btn { padding: 6px 13px; font-size: 0.82rem; }
 
-/* ===== Records header row with export button ===== */
-.records-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 12px; }
-.records-header-row .records-header { margin-bottom: 0; }
-.export-btn { padding: 8px 16px !important; font-size: 0.82rem !important; background: var(--bg-card2) !important; color: var(--text-secondary) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; width: auto !important; }
-.export-btn:hover { color: var(--text-primary) !important; border-color: var(--accent) !important; background: white !important; transform: none !important; }
-.export-btn::before { display: none !important; }
+            /* 預算帳單列 */
+            .budget-bill-bar { grid-template-columns: 1fr; padding: 16px 14px; border-radius: 14px; }
+            .bb-divider { height: 1px; width: 100%; margin: 4px 0; }
+            .bb-item { padding: 10px 0; }
+            .bb-edit-row { flex-wrap: wrap; }
+            .bb-save-btn, .bb-reset-btn { flex: 1; }
 
-/* ===== Custom dialog/modal (replaces alert/confirm/prompt) ===== */
-.modal-overlay {
-    position: fixed; inset: 0; background: rgba(26,21,16,0.65);
-    backdrop-filter: blur(4px); z-index: 1000;
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
-}
-.modal-overlay.show { opacity: 1; pointer-events: auto; }
-.modal-box {
-    background: var(--bg-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius); padding: 28px; max-width: 380px; width: 100%;
-    box-shadow: 0 16px 60px var(--shadow); transform: translateY(10px); transition: transform 0.2s ease;
-}
-.modal-overlay.show .modal-box { transform: translateY(0); }
-.modal-icon { font-size: 2.2rem; text-align: center; margin-bottom: 10px; }
-.modal-title { font-family: 'Crimson Pro', serif; font-size: 1.25rem; font-weight: 600; text-align: center; margin-bottom: 8px; color: var(--text-primary); }
-.modal-message { font-size: 0.92rem; color: var(--text-secondary); text-align: center; margin-bottom: 20px; line-height: 1.7; }
-.modal-input { margin-bottom: 18px; }
-.modal-actions { display: flex; gap: 10px; }
-.modal-actions button { flex: 1; }
+            /* 表單卡片 */
+            .main-grid, .credit-top-grid { gap: 14px; margin-bottom: 14px; }
+            .card, .credit-form-card { padding: 20px 16px; border-radius: 14px; }
+            .card-title { font-size: 1.4rem; }
 
-@media (max-width: 768px) {
-    .combo-banner { grid-template-columns: 1fr; }
-    .combo-edit-row { grid-template-columns: 1fr; }
-    .combo-edit-row .swap-icon { display: none; }
-    body { padding: 10px; }
-    h1 { font-size: 2rem; }
-    header { padding: 28px 16px 24px; border-radius: 16px; }
-    .trip-grid { grid-template-columns: 1fr; }
-    .overview-banner { grid-template-columns: repeat(3,1fr); gap: 8px; }
-    .ov-item { padding: 12px 8px; }
-    .ov-value { font-size: 1.2rem; }
-    .ov-label { font-size: 0.6rem; }
-    .record-item { grid-template-columns: 1fr; gap: 6px; text-align: left; }
-    .record-amounts { text-align: left; }
-    .row { flex-direction: column; }
-    .chrome-tab { padding: 10px 16px 12px; font-size: 0.85rem; }
-}
-</style>
+            /* 財務總覽 */
+            .summary { padding: 20px 14px; border-radius: 14px; margin-bottom: 14px; }
+            .summary-header { font-size: 1.5rem; margin-bottom: 16px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+            .savings-rate-box { grid-column: span 2; }
+            .savings-rate-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .stat-box { padding: 16px 10px; border-radius: 10px; }
+            .stat-value { font-size: 1.5rem; }
+
+            /* 記錄列表 */
+            .record-item { grid-template-columns: 1fr 1fr; gap: 6px; padding: 14px 12px; border-radius: 10px; }
+            .record-item > div:nth-child(2) { grid-column: span 2; }
+            .record-item > div:nth-child(5) { display: none; }
+            .record-amount { text-align: right; }
+            .credit-record-item { grid-template-columns: 1fr 1fr; gap: 6px; padding: 14px 12px; border-radius: 10px; }
+            .credit-record-item > div:nth-child(2) { grid-column: span 2; }
+            .record-item > div:last-child,
+            .credit-record-item > div:last-child { grid-column: span 2; display: flex; gap: 8px; }
+            .edit-btn, .delete-btn { flex: 1; text-align: center; }
+
+            /* 搜尋 */
+            .search-section { padding: 16px 14px; border-radius: 14px; }
+            .search-bar { padding: 3px 4px 3px 12px; }
+            .search-go-btn { padding: 8px 14px !important; font-size: 0.82rem !important; }
+            .search-result-item { padding: 10px 12px; }
+
+            /* 圖表 */
+            .charts-section { padding-top: 20px; margin-top: 20px; }
+            .charts-grid { grid-template-columns: 1fr; gap: 14px; }
+            .chart-container.full-width { grid-column: span 1; }
+            .chart-container { padding: 16px 12px; border-radius: 10px; }
+            canvas { max-height: 220px; }
+
+            /* 月對月比較 */
+            .mom-grid { grid-template-columns: 1fr; gap: 10px; }
+            .mom-section { padding: 16px 14px; }
+
+            /* AI 助手 */
+            .ai-section { padding: 20px 14px; border-radius: 14px; margin-bottom: 14px; }
+            .ai-body { grid-template-columns: 1fr; gap: 16px; }
+            .ai-pie-wrap { max-width: 200px; margin: 0 auto; }
+            .ai-btn-col { gap: 10px; }
+            .ai-pie-side { padding: 16px; }
+
+            /* 信用卡 */
+            .credit-card-visual { padding: 24px 20px; border-radius: 14px; }
+            .credit-card-balance { font-size: 2.2rem; }
+            .credit-records, .credit-chart-section { padding: 20px 14px; border-radius: 14px; margin-bottom: 14px; }
+
+            /* 固定支出 */
+            .fixed-section { padding: 18px 14px; border-radius: 14px; }
+            .fixed-add-row { flex-direction: column; gap: 8px; }
+            .fixed-add-row input { width: 100%; }
+            .fixed-item-row { flex-wrap: wrap; gap: 8px; }
+            .fixed-apply-btn, .fixed-delete-btn { flex: 1; text-align: center; }
+
+            /* 分頁 */
+            .pagination { gap: 4px; margin-top: 14px; }
+            .page-btn { padding: 7px 11px !important; font-size: 0.8rem !important; }
+
+            /* Modal */
+            .modal-box { padding: 24px 18px; margin: 16px; }
+            .confirm-box { padding: 24px 18px; }
+
+            /* 編輯 modal 的輸入框 */
+            .modal-actions { flex-direction: column; gap: 8px; }
+        }
+        @media (max-width: 420px) {
+            .overview-banner { grid-template-columns: 1fr 1fr; }
+            .ov-value { font-size: 1.15rem; }
+            h1 { font-size: 1.7rem; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .savings-rate-box { grid-column: span 1; }
+        }
+        /* ══ 預算 & 帳單提醒列 ══ */
+        .budget-bill-bar {
+            display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+            background: rgba(245,240,232,0.97); border: 1px solid var(--border-color);
+            border-radius: var(--radius); padding: 22px 28px; margin-bottom: 20px;
+            box-shadow: 0 4px 20px var(--shadow-card); gap: 0; align-items: start;
+        }
+        .bb-item { padding: 0 20px; display: flex; flex-direction: column; gap: 6px; }
+        .bb-item:first-child { padding-left: 0; }
+        .bb-item:last-child { padding-right: 0; }
+        .bb-divider { width: 1px; background: var(--border-color); align-self: stretch; }
+        .bb-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+        .bb-value { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; color: var(--text-primary); }
+        .bb-value.over-budget { color: var(--expense-color); }
+        .bb-sub { font-size: 0.78rem; color: var(--text-secondary); }
+        .bb-sub.urgent { color: var(--expense-color); font-weight: 700; }
+        .bb-edit-row { display: flex; gap: 7px; margin-top: 4px; }
+        .bb-edit-row input { flex: 1; padding: 7px 10px; font-size: 0.85rem; border: 1px solid var(--border-color); background: var(--bg-card2); color: var(--text-primary); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; min-width: 0; }
+        .bb-edit-row input:focus { outline: none; border-color: var(--accent); }
+        .bb-save-btn { width: auto !important; padding: 7px 12px !important; font-size: 0.8rem !important; white-space: nowrap; border-radius: 8px !important; }
+        .bb-reset-btn { width: auto !important; padding: 7px 10px !important; font-size: 0.8rem !important; white-space: nowrap; border-radius: 8px !important; background: transparent !important; color: var(--text-secondary) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; }
+        .bb-reset-btn:hover { background: rgba(139,58,42,0.08) !important; color: var(--expense-color) !important; transform: none !important; }
+        .bb-reset-btn::before { display: none; }
+        .bb-progress-wrap { margin: 2px 0; }
+        .bb-progress-bg { background: rgba(180,155,120,0.2); border-radius: 6px; height: 7px; overflow: hidden; }
+        .bb-progress-fill { height: 100%; border-radius: 6px; background: var(--income-color); transition: width 0.4s ease, background 0.3s; }
+        .bb-progress-fill.warn { background: #d97706; }
+        .bb-progress-fill.over { background: var(--expense-color); }
+        .bb-progress-text { font-size: 0.72rem; color: var(--text-secondary); margin-top: 3px; }
+        @media (max-width: 768px) { .budget-bill-bar { grid-template-columns: 1fr; } .bb-divider { height: 1px; width: 100%; } .bb-item { padding: 12px 0; } }
+
+        /* ══ 搜尋區塊 ══ */
+        .search-section { background: rgba(245,240,232,0.97); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 20px; box-shadow: 0 4px 20px var(--shadow-card); }
+        .search-section-title { font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+        .search-bar { display: flex; align-items: center; gap: 10px; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 4px 6px 4px 16px; box-shadow: 0 2px 8px var(--shadow-card); }
+        .search-bar input { flex: 1; border: none; background: transparent; color: var(--text-primary); font-size: 0.98rem; font-family: 'Noto Sans TC', sans-serif; outline: none; padding: 8px 0; }
+        .search-bar input::placeholder { color: rgba(122,106,87,0.5); }
+        .search-go-btn { width: auto !important; padding: 9px 20px !important; font-size: 0.88rem !important; border-radius: 9px !important; white-space: nowrap; }
+        .search-clear-btn { width: auto !important; background: transparent !important; border: 1px solid var(--border-color) !important; color: var(--text-secondary) !important; font-size: 0.82rem !important; cursor: pointer; padding: 9px 14px !important; border-radius: 9px !important; box-shadow: none !important; }
+        .search-clear-btn:hover { background: rgba(139,58,42,0.08) !important; color: var(--expense-color) !important; transform: none !important; }
+        .search-clear-btn::before { display: none; }
+        .search-results-header { font-size: 0.82rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin: 18px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+        .search-result-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 8px; background: white; cursor: pointer; transition: all 0.2s ease; }
+        .search-result-item:hover { border-color: var(--accent); background: rgba(176,125,58,0.05); transform: translateX(4px); }
+        .search-result-item:hover .sri-arrow { opacity: 1; }
+        .sri-type { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+        .sri-type.income { background: rgba(45,107,63,0.12); color: var(--income-color); }
+        .sri-type.expense { background: rgba(139,58,42,0.12); color: var(--expense-color); }
+        .sri-type.credit { background: rgba(58,90,139,0.12); color: var(--credit-color); }
+        .sri-body { flex: 1; min-width: 0; }
+        .sri-name { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
+        .sri-meta { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+        .sri-amount { font-family: 'Crimson Pro', serif; font-size: 1.3rem; font-weight: 600; flex-shrink: 0; }
+        .sri-amount.income { color: var(--income-color); }
+        .sri-amount.expense { color: var(--expense-color); }
+        .sri-amount.credit { color: var(--credit-color); }
+        .sri-arrow { opacity: 0; color: var(--accent); font-size: 1.1rem; transition: opacity 0.2s; flex-shrink: 0; }
+        .search-match { background: rgba(176,125,58,0.25); border-radius: 3px; padding: 1px 3px; font-weight: 700; }
+
+        /* ══ 信用卡額度設定 ══ */
+        .credit-limit-setting { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-color); }
+        .cls-label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+        .cls-row { display: flex; gap: 8px; }
+        .cls-row input { flex: 1; }
+
+        .record-highlight { animation: highlightPulse 2s ease; }
+        @keyframes highlightPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(176,125,58,0.7); background: rgba(176,125,58,0.15); }
+            50%  { box-shadow: 0 0 0 8px rgba(176,125,58,0); background: rgba(176,125,58,0.08); }
+            100% { box-shadow: none; background: transparent; }
+        }
+
+        /* ══ 儲蓄率 ══ */
+        .savings-rate-box { grid-column: span 3; }
+        .savings-rate-row { display: flex; align-items: center; gap: 24px; }
+        .savings-rate-bar-wrap { flex: 1; }
+        .savings-rate-bg { background: rgba(180,155,120,0.2); border-radius: 8px; height: 10px; overflow: hidden; margin-bottom: 6px; }
+        .savings-rate-fill { height: 100%; border-radius: 8px; background: var(--income-color); transition: width 0.5s ease, background 0.3s; }
+        .savings-rate-fill.low { background: var(--expense-color); }
+        .savings-rate-fill.mid { background: #d97706; }
+        .savings-rate-sub { font-size: 0.78rem; color: var(--text-secondary); }
+
+        /* ══ 月對月比較 ══ */
+        .mom-section { margin-bottom: 24px; padding: 24px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
+        .mom-title { font-weight: 700; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 18px; }
+        .mom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .mom-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px; text-align: center; }
+        .mom-card-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 700; }
+        .mom-card-months { display: flex; justify-content: space-around; margin-bottom: 10px; }
+        .mom-month { font-size: 0.8rem; color: var(--text-secondary); }
+        .mom-month span { display: block; font-family: 'Crimson Pro', serif; font-size: 1.4rem; font-weight: 600; color: var(--text-primary); }
+        .mom-arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .mom-change { font-size: 0.82rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+        .mom-change.up { background: rgba(139,58,42,0.12); color: var(--expense-color); }
+        .mom-change.down { background: rgba(45,107,63,0.12); color: var(--income-color); }
+        .mom-change.neutral { background: rgba(180,155,120,0.15); color: var(--text-secondary); }
+        @media (max-width: 768px) { .mom-grid { grid-template-columns: 1fr; } .savings-rate-box { grid-column: span 1; } .savings-rate-row { flex-direction: column; align-items: flex-start; gap: 10px; } }
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-box {
+            background: var(--bg-card); border-radius: var(--radius);
+            padding: 32px; width: 100%; max-width: 440px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(-10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+        .modal-title { font-family: 'Crimson Pro', serif; font-size: 1.6rem; font-weight: 600; color: var(--text-primary); }
+        .modal-close { width: auto; background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; box-shadow: none; }
+        .modal-close:hover { background: rgba(139,58,42,0.1); color: var(--expense-color); transform: none; }
+        .modal-close::before { display: none; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-actions button { flex: 1; }
+        .modal-cancel-btn { background: transparent !important; border: 1px solid var(--border-color) !important; color: var(--text-secondary) !important; box-shadow: none !important; }
+        .modal-cancel-btn:hover { background: rgba(0,0,0,0.05) !important; transform: none !important; }
+
+        /* ══ Toast 通知 ══ */
+        .toast {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm); padding: 14px 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            font-size: 0.92rem; color: var(--text-primary);
+            display: flex; align-items: center; gap: 10px;
+            min-width: 220px; max-width: 320px;
+            animation: toastIn 0.3s ease; pointer-events: auto;
+            border-left: 4px solid var(--accent);
+        }
+        .toast.success { border-left-color: var(--income-color); }
+        .toast.error   { border-left-color: var(--expense-color); }
+        .toast.info    { border-left-color: var(--accent); }
+        .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+        .toast-text { flex: 1; line-height: 1.4; }
+        @keyframes toastIn  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes toastOut { from { opacity:1; transform:translateY(0); }   to { opacity:0; transform:translateY(12px); } }
+
+        /* ══ 分頁 ══ */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 20px; flex-wrap: wrap; }
+        .page-btn { width: auto !important; padding: 8px 14px !important; font-size: 0.85rem !important; border-radius: 10px !important; background: var(--bg-card2) !important; color: var(--text-secondary) !important; border: 1px solid var(--border-color) !important; box-shadow: none !important; transition: all 0.2s !important; }
+        .page-btn:hover { background: white !important; color: var(--text-primary) !important; border-color: var(--accent) !important; transform: none !important; }
+        .page-btn.active { background: linear-gradient(135deg, var(--accent), #c9973f) !important; color: white !important; border-color: transparent !important; box-shadow: 0 2px 10px rgba(181,129,58,0.35) !important; }
+        .page-btn::before { display: none; }
+        .page-info { font-size: 0.82rem; color: var(--text-secondary); padding: 0 8px; }
+
+        /* ══ 信用卡趨勢圖 ══ */
+        .credit-chart-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; box-shadow: 0 4px 24px var(--shadow-card); }
+
+        /* ══ 匯出 CSV ══ */
+        .export-btn { width: auto !important; padding: 8px 16px !important; font-size: 0.82rem !important; border-radius: 10px !important; box-shadow: none !important; background: linear-gradient(135deg, var(--accent), #c9953a) !important; }
+        .export-btn::before { display: none; }
+
+        /* ══ 固定支出 ══ */
+        .fixed-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 26px; margin-top: 24px; box-shadow: 0 4px 20px var(--shadow-card); border-left: 4px solid var(--accent); }
+        .fixed-header { margin-bottom: 18px; }
+        .fixed-title { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 600; color: var(--text-primary); }
+        .fixed-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 3px; }
+        .fixed-add-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+        .fixed-add-row input { flex: 1; min-width: 130px; }
+        .fixed-item-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 8px; background: rgba(255,255,255,0.5); transition: all 0.2s; }
+        .fixed-item-row:hover { background: white; }
+        .fixed-item-name { flex: 1; font-weight: 700; color: var(--text-primary); }
+        .fixed-item-amount { font-family: 'Crimson Pro', serif; font-size: 1.2rem; color: var(--expense-color); font-weight: 600; }
+        .fixed-apply-btn { width: auto !important; padding: 7px 14px !important; font-size: 0.8rem !important; border-radius: 8px !important; white-space: nowrap; box-shadow: none !important; }
+        .fixed-delete-btn { width: auto; padding: 7px 12px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); font-size: 0.8rem; cursor: pointer; border-radius: 8px; box-shadow: none; font-family: 'Noto Sans TC', sans-serif; font-weight: 600; transition: all 0.2s; }
+        .fixed-delete-btn:hover { background: rgba(139,58,42,0.1); color: var(--expense-color); border-color: rgba(139,58,42,0.3); transform: none; }
+        .fixed-delete-btn::before { display: none; }
+
+        /* ══ 確認刪除 Modal ══ */
+        .confirm-box { max-width: 360px; text-align: center; }
+        .confirm-icon { font-size: 2.8rem; margin-bottom: 12px; }
+        .confirm-title { font-family: 'Crimson Pro', serif; font-size: 1.6rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+        .confirm-msg { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .confirm-delete-btn { background: linear-gradient(135deg, #8b3a2a, #c04a36) !important; box-shadow: 0 4px 16px rgba(139,58,42,0.35) !important; }
+        .confirm-delete-btn:hover { box-shadow: 0 6px 24px rgba(139,58,42,0.5) !important; }
+
+        /* ══ 記錄備註 ══ */
+        .record-note { font-size: 0.78rem; color: var(--text-secondary); font-style: italic; grid-column: 2; margin-top: -4px; }
+    </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <h1>旅遊記帳本</h1>
-        <div class="subtitle">Travel Expense &amp; Currency Tracker</div>
-        <div style="margin-top:14px;"><span id="syncStatus" class="sync-status loading">☁️ 連線中...</span></div>
+        <h1>記帳本</h1>
+        <div class="subtitle">Make Wise Use of Your Money</div>
     </header>
 
-    <!-- ============ Trip List Page ============ -->
-    <div id="tripListPage">
-        <div class="glass">
-            <h2 class="card-title" style="border:none;margin-bottom:16px;">新增一趟旅程</h2>
-            <div class="row">
-                <div class="form-group">
-                    <label>旅程名稱</label>
-                    <input type="text" id="newTripName" placeholder="例如：日本關西自由行">
-                </div>
-                <div class="form-group">
-                    <label>幣別</label>
-                    <select id="newTripCurrency">
-                        <option value="JPY">JPY - 日圓</option>
-                        <option value="USD">USD - 美元</option>
-                        <option value="EUR">EUR - 歐元</option>
-                        <option value="KRW">KRW - 韓元</option>
-                        <option value="CNY">CNY - 人民幣</option>
-                        <option value="GBP">GBP - 英鎊</option>
-                        <option value="AUD">AUD - 澳幣</option>
-                        <option value="HKD">HKD - 港幣</option>
-                        <option value="THB">THB - 泰銖</option>
-                        <option value="SGD">SGD - 新加坡幣</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group">
-                    <label>國家</label>
-                    <input type="text" id="newTripCountry" placeholder="日本">
-                </div>
-                <div class="form-group">
-                    <label>城市</label>
-                    <input type="text" id="newTripCity" placeholder="大阪">
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group">
-                    <label>出發日期</label>
-                    <input type="date" id="newTripStart">
-                </div>
-                <div class="form-group">
-                    <label>結束日期</label>
-                    <input type="date" id="newTripEnd">
-                </div>
-            </div>
-            <button onclick="createTrip()"><span>＋ 建立旅程</span></button>
+    <!-- ══ 總覽橫幅 ══ -->
+    <div class="overview-banner">
+        <div class="ov-item">
+            <div class="ov-label">💵 本月現金收入</div>
+            <div class="ov-value income-val" id="ovCashIncome">$0</div>
         </div>
-
-        <div class="glass" style="padding:28px;">
-            <h2 class="card-title" style="border:none;margin-bottom:16px;">我的旅程</h2>
-            <div id="tripGrid" class="trip-grid"></div>
-            <div id="tripPagination" class="pagination"></div>
+        <div class="ov-divider"></div>
+        <div class="ov-item">
+            <div class="ov-label">💸 本月現金支出</div>
+            <div class="ov-value expense-val" id="ovCashExpense">$0</div>
+        </div>
+        <div class="ov-divider"></div>
+        <div class="ov-item">
+            <div class="ov-label">💳 信用卡支出</div>
+            <div class="ov-value expense-val" id="ovCreditExpense">$0</div>
+        </div>
+        <div class="ov-divider"></div>
+        <div class="ov-item">
+            <div class="ov-label">📊 信用卡剩餘額度</div>
+            <div class="ov-value credit-val" id="ovCreditRemain">$20,000</div>
+        </div>
+        <div class="ov-divider"></div>
+        <div class="ov-item ov-bank">
+            <div class="ov-label">🏦 銀行帳戶餘額</div>
+            <div class="ov-value" id="ovBankBalance">$0</div>
+            <div class="ov-bank-edit">
+                <input type="number" id="bankBalanceInput" placeholder="輸入餘額" min="0" step="1">
+                <button class="ov-save-btn" onclick="saveBankBalance()"><span>更新</span></button>
+            </div>
+        </div>
+        <div class="ov-divider"></div>
+        <div class="ov-item">
+            <div class="ov-label">🗓️ 本月總支出</div>
+            <div class="ov-value expense-val" id="ovMonthlyTotal">$0</div>
+            <div class="ov-sub" id="ovMonthlyLabel">現金＋信用卡</div>
         </div>
     </div>
 
-    <!-- ============ Trip Detail Page ============ -->
-    <div id="detailPage">
-        <div class="glass" style="padding:20px 28px 24px;margin-bottom:20px;">
-            <div class="back-bar">
-                <button class="secondary small" onclick="goToList()"><span>← 返回旅程列表</span></button>
+    <!-- ══ API Key 設定 ══ -->
+    <div class="settings-bar">
+        <div class="settings-label">🔑 Claude API Key</div>
+        <input type="password" id="globalApiKey" placeholder="sk-ant-…（輸入後按儲存）">
+        <button onclick="saveApiKey()"><span>儲存</span></button>
+        <button onclick="testApiKey()"><span>🧪 測試</span></button>
+        <button class="bb-reset-btn" onclick="resetApiKey()"><span>重設</span></button>
+        <span class="key-badge none" id="keyBadge">未設定</span>
+    </div>
+
+    <!-- ══ 預算 & 帳單提醒 ══ -->
+    <div class="budget-bill-bar">
+        <div class="bb-item">
+            <div class="bb-label">🎯 本月支出預算</div>
+            <div class="bb-value" id="budgetDisplay">未設定</div>
+            <div class="bb-progress-wrap" id="budgetProgressWrap" style="display:none">
+                <div class="bb-progress-bg"><div class="bb-progress-fill" id="budgetProgressFill" style="width:0%"></div></div>
+                <div class="bb-progress-text" id="budgetProgressText"></div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
-                <div>
-                    <div class="trip-title" id="detailTripName" style="color:var(--text-primary)"></div>
-                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;" id="detailTripMeta"></div>
-                </div>
-                <div class="trip-card-currency" id="detailTripCurrency"></div>
-            </div>
-            <!-- Top summary bar -->
-            <div class="top-summary-bar">
-                <div class="top-summary-item">
-                    <div class="top-summary-label">現金支出</div>
-                    <div class="top-summary-value expense-val" id="topCashSpentLocal">—</div>
-                    <div class="top-summary-sub" id="topCashSpent">—</div>
-                </div>
-                <div class="top-summary-sep">＋</div>
-                <div class="top-summary-item">
-                    <div class="top-summary-label">信用卡支出</div>
-                    <div class="top-summary-value credit-val" id="topCreditSpentLocal">—</div>
-                    <div class="top-summary-sub" id="topCreditSpent">—</div>
-                </div>
-                <div class="top-summary-sep">=</div>
-                <div class="top-summary-item highlight">
-                    <div class="top-summary-label">總支出</div>
-                    <div class="top-summary-value" id="topTotalSpentLocal" style="color:var(--text-primary);">—</div>
-                    <div class="top-summary-sub" id="topTotalSpent">—</div>
-                </div>
+            <div class="bb-edit-row">
+                <input type="number" id="budgetInput" placeholder="輸入預算金額" min="0" step="100">
+                <button class="bb-save-btn" onclick="saveBudget()"><span>設定</span></button>
+                <button class="bb-reset-btn" onclick="resetBudget()"><span>重設</span></button>
             </div>
         </div>
-
-        <!-- Combined Budget Overview -->
-        <div class="combo-banner">
-            <div class="combo-card cash-card-combo">
-                <div class="combo-title">💴 現金</div>
-                <div class="combo-row">
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">預算</div>
-                        <div class="combo-stat-value income-val" id="cashBudgetVal">0</div>
-                    </div>
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">支出</div>
-                        <div class="combo-stat-value expense-val" id="cashSpentVal">0</div>
-                    </div>
-                </div>
-                <div class="combo-row">
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">餘額</div>
-                        <div class="combo-stat-value" id="cashBalanceVal">0</div>
-                    </div>
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">餘額 (TWD)</div>
-                        <div class="combo-stat-value" id="cashBalanceTwd">0</div>
-                    </div>
-                </div>
-                <div class="combo-edit-section">
-                    <label>新增現金預算 (兩邊輸入會即時互換)</label>
-                    <div class="combo-edit-row">
-                        <div>
-                            <input type="number" id="cashBudgetInputLocal" placeholder="當地幣金額">
-                        </div>
-                        <div class="swap-icon">⇄</div>
-                        <div>
-                            <input type="number" id="cashBudgetInputTwd" placeholder="台幣金額">
-                        </div>
-                    </div>
-                    <div class="combo-edit-actions">
-                        <div style="display:flex;gap:8px;">
-                            <button class="auto" onclick="addCashBudget()" style="flex:1"><span>新增到預算</span></button>
-                            <button class="auto secondary" onclick="clearCashBudget()" style="flex:0 0 auto;color:var(--expense-color);border-color:rgba(139,58,42,0.3)"><span>清零</span></button>
-                        </div>
-                    </div>
-                    <div class="rate-status" id="cashBudgetRateStatus"></div>
-                </div>
-            </div>
-
-            <div class="combo-card credit-card-combo">
-                <div class="combo-title">💳 信用卡</div>
-                <div class="combo-row">
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">額度</div>
-                        <div class="combo-stat-value credit-val" id="creditLimitVal">0</div>
-                    </div>
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">支出</div>
-                        <div class="combo-stat-value expense-val" id="creditSpentVal">0</div>
-                    </div>
-                </div>
-                <div class="combo-row">
-                    <div class="combo-stat">
-                        <div class="combo-stat-label">總支出 (現金+信用卡)</div>
-                        <div class="combo-stat-value" id="totalSpentTwd" style="grid-column: span 2;">0</div>
-                    </div>
-                </div>
-                <div class="combo-edit-section">
-                    <label>設定信用卡額度 (兩邊輸入會即時互換)</label>
-                    <div class="combo-edit-row">
-                        <div>
-                            <input type="number" id="creditLimitInputLocal" placeholder="當地幣金額">
-                        </div>
-                        <div class="swap-icon">⇄</div>
-                        <div>
-                            <input type="number" id="creditLimitInputTwd" placeholder="台幣金額">
-                        </div>
-                    </div>
-                    <div class="combo-edit-actions">
-                        <div style="display:flex;gap:8px;">
-                            <button class="auto" onclick="setCreditLimit()" style="flex:1"><span>設定額度</span></button>
-                            <button class="auto secondary" onclick="clearCreditLimit()" style="flex:0 0 auto;color:var(--expense-color);border-color:rgba(139,58,42,0.3)"><span>清零</span></button>
-                        </div>
-                    </div>
-                    <div class="rate-status" id="creditLimitRateStatus"></div>
-                </div>
+        <div class="bb-divider"></div>
+        <div class="bb-item">
+            <div class="bb-label">📅 信用卡帳單日</div>
+            <div class="bb-value" id="billDayDisplay">未設定</div>
+            <div class="bb-sub" id="billDayCountdown"></div>
+            <div class="bb-edit-row">
+                <input type="number" id="billDayInput" placeholder="每月幾號" min="1" max="31">
+                <button class="bb-save-btn" onclick="saveBillDay()"><span>設定</span></button>
+                <button class="bb-reset-btn" onclick="resetBillDay()"><span>重設</span></button>
             </div>
         </div>
+        <div class="bb-divider"></div>
+        <div class="bb-item">
+            <div class="bb-label">💰 信用卡繳費日</div>
+            <div class="bb-value" id="payDayDisplay">未設定</div>
+            <div class="bb-sub" id="payDayCountdown"></div>
+            <div class="bb-edit-row">
+                <input type="number" id="payDayInput" placeholder="每月幾號" min="1" max="31">
+                <button class="bb-save-btn" onclick="savePayDay()"><span>設定</span></button>
+                <button class="bb-reset-btn" onclick="resetPayDay()"><span>重設</span></button>
+            </div>
+        </div>
+    </div>
 
-        <!-- Tabs -->
+    <!-- ══ 月份主選擇器 ══ -->
+    <div class="month-picker-bar">
+        <div class="month-picker-label">📅 選擇年份與月份</div>
+        <div class="year-dropdown-wrap">
+            <button class="year-trigger" id="yearTrigger" onclick="toggleYearDropdown()">
+                <span id="yearTriggerLabel">2026年</span>
+                <span class="year-trigger-arrow" id="yearArrow">▾</span>
+            </button>
+            <div class="year-dropdown" id="yearDropdown" style="display:none;">
+                <div class="year-dropdown-inner" id="yearDropdownInner"></div>
+            </div>
+        </div>
+        <div class="month-picker-row">
+            <div class="month-grid" id="monthGrid">
+                <button class="month-btn" data-m="" onclick="selectMonth(this)">全部</button>
+                <button class="month-btn" data-m="1" onclick="selectMonth(this)">一月</button>
+                <button class="month-btn" data-m="2" onclick="selectMonth(this)">二月</button>
+                <button class="month-btn" data-m="3" onclick="selectMonth(this)">三月</button>
+                <button class="month-btn" data-m="4" onclick="selectMonth(this)">四月</button>
+                <button class="month-btn" data-m="5" onclick="selectMonth(this)">五月</button>
+                <button class="month-btn" data-m="6" onclick="selectMonth(this)">六月</button>
+                <button class="month-btn" data-m="7" onclick="selectMonth(this)">七月</button>
+                <button class="month-btn" data-m="8" onclick="selectMonth(this)">八月</button>
+                <button class="month-btn" data-m="9" onclick="selectMonth(this)">九月</button>
+                <button class="month-btn" data-m="10" onclick="selectMonth(this)">十月</button>
+                <button class="month-btn" data-m="11" onclick="selectMonth(this)">十一月</button>
+                <button class="month-btn" data-m="12" onclick="selectMonth(this)">十二月</button>
+            </div>
+        </div>
+        <div class="month-picker-hint" id="monthPickerHint">請選擇月份以查看細項記錄與功能</div>
+    </div>
+
+    <!-- ══ 月份選擇後顯示的內容區 ══ -->
+    <div id="monthContent" style="display:none;">
+
+        <!-- Chrome 風格分頁 -->
         <div class="chrome-tab-wrap">
             <div class="chrome-tabs">
-                <div class="chrome-tab active" data-tab="cash" onclick="switchTab('cash')"><span>💴 現金紀錄</span></div>
-                <div class="chrome-tab" data-tab="credit" onclick="switchTab('credit')"><span>💳 信用卡紀錄</span></div>
+                <button class="chrome-tab active" onclick="switchTab('cash', this)">
+                    <span class="chrome-tab-icon">💵</span> 現金
+                </button>
+                <button class="chrome-tab" onclick="switchTab('credit', this)">
+                    <span class="chrome-tab-icon">💳</span> 信用卡
+                </button>
             </div>
         </div>
 
-        <!-- Cash Tab -->
-        <div class="tab-content active" id="tab-cash">
-            <div class="card expense">
-                <div class="card-title">新增現金支出</div>
-                <div class="rate-status" id="cashRateStatus"></div>
-                <div class="row">
-                    <div class="form-group">
-                        <label>支出日期</label>
-                        <input type="date" id="cashDate">
+        <!-- ════════════ 現金頁 ════════════ -->
+        <div id="tab-cash" class="tab-content active">
+            <div class="main-grid">
+                <div class="card income">
+                    <div class="card-header">
+                        <div class="card-icon">+</div>
+                        <div class="card-title">收入</div>
                     </div>
-                    <div class="form-group">
-                        <label>項目</label>
-                        <input type="text" id="cashItem" placeholder="例如：午餐、計程車">
+                    <form id="incomeForm">
+                        <div class="form-group"><label>日期</label><input type="date" id="incomeDate" required></div>
+                        <div class="form-group"><label>項目</label><input type="text" id="incomeItem" placeholder="例如：薪資、獎金" required></div>
+                        <div class="form-group"><label>金額</label><input type="number" id="incomeAmount" placeholder="0" min="0" step="1" required></div>
+                        <div class="form-group"><label>備註（選填）</label><input type="text" id="incomeNote" placeholder="額外說明…"></div>
+                        <button type="submit"><span>新增收入</span></button>
+                    </form>
+                </div>
+                <div class="card expense">
+                    <div class="card-header">
+                        <div class="card-icon">−</div>
+                        <div class="card-title">支出</div>
                     </div>
+                    <form id="expenseForm">
+                        <div class="form-group"><label>日期</label><input type="date" id="expenseDate" required></div>
+                        <div class="form-group"><label>項目</label><input type="text" id="expenseItem" placeholder="例如：飲食、交通" required></div>
+                        <div class="form-group"><label>金額</label><input type="number" id="expenseAmount" placeholder="0" min="0" step="1" required></div>
+                        <div class="form-group"><label>備註（選填）</label><input type="text" id="expenseNote" placeholder="額外說明…"></div>
+                        <button type="submit"><span>新增支出</span></button>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label>金額 (<span id="cashCurrencyLabel1">當地幣</span>)</label>
-                    <input type="number" id="cashAmount" placeholder="0" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>備註</label>
-                    <input type="text" id="cashNote" placeholder="選填">
-                </div>
-                <div class="rate-hint">送出時將自動抓取當下匯率並換算台幣</div>
-                <button onclick="addCashRecord()"><span>＋ 新增支出</span></button>
             </div>
 
-            <div class="records-section">
-                <div class="records-header-row">
-                    <div class="records-header">現金消費紀錄</div>
-                    <button class="auto secondary export-btn" onclick="exportCSV()"><span>📥 匯出 CSV</span></button>
+            <!-- 當月財務總覽 -->
+            <div class="summary">
+                <div class="summary-header" id="summaryTitle">當月財務總覽</div>
+                <div class="stats-grid">
+                    <div class="stat-box income"><div class="stat-label">收入</div><div class="stat-value" id="totalIncome">$0</div></div>
+                    <div class="stat-box expense"><div class="stat-label">支出</div><div class="stat-value" id="totalExpense">$0</div></div>
+                    <div class="stat-box"><div class="stat-label">淨收支</div><div class="stat-value" id="netBalance">$0</div></div>
+                    <div class="stat-box savings-rate-box" style="grid-column:span 3">
+                        <div class="stat-label">💰 儲蓄率</div>
+                        <div class="savings-rate-row">
+                            <div class="stat-value" id="savingsRateValue">—</div>
+                            <div class="savings-rate-bar-wrap">
+                                <div class="savings-rate-bg"><div class="savings-rate-fill" id="savingsRateFill" style="width:0%"></div></div>
+                                <div class="savings-rate-sub" id="savingsRateSub"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="search-bar">
-                    <input type="text" id="cashSearch" placeholder="搜尋項目或備註..." oninput="renderCashRecords()">
+                <div class="search-section">
+                    <div class="search-section-title">🔍 搜尋記錄</div>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="輸入項目、備註、類別、金額…" onkeydown="if(event.key==='Enter') doSearch()">
+                        <button class="search-go-btn" onclick="doSearch()"><span>搜尋</span></button>
+                        <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()" style="display:none"><span>清除</span></button>
+                    </div>
+                    <div id="searchResults" style="display:none">
+                        <div class="search-results-header" id="searchResultsHeader"></div>
+                        <div id="searchResultsList"></div>
+                    </div>
                 </div>
-                <div id="cashRecordsList"></div>
-                <div id="cashPagination" class="pagination"></div>
+
+                <div class="records-section">
+                    <div class="records-header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>細項記錄</span>
+                        <button class="export-btn" onclick="exportCSV()"><span>⬇️ 匯出 CSV</span></button>
+                    </div>
+                    <div id="recordsList"></div>
+                    <div class="pagination" id="cashPagination"></div>
+                </div>
+
+                <!-- 固定支出 -->
+                <div class="fixed-section">
+                    <div class="fixed-header">
+                        <div class="fixed-title">📌 固定支出</div>
+                        <div class="fixed-sub">每月重複的項目，點擊「加入本月」一鍵新增</div>
+                    </div>
+                    <div class="fixed-add-row">
+                        <input type="text" id="fixedItem" placeholder="項目名稱（如：房租）">
+                        <input type="number" id="fixedAmount" placeholder="金額" min="0" step="1">
+                        <button class="bb-save-btn" onclick="addFixedExpense()"><span>新增固定項目</span></button>
+                    </div>
+                    <div id="fixedList"></div>
+                </div>
+                <div class="charts-section">
+                    <div class="charts-header">數據分析</div>
+                    <!-- 月對月比較 -->
+                    <div class="mom-section">
+                        <div class="mom-title">📊 月對月比較</div>
+                        <div class="mom-grid" id="momGrid">
+                            <div class="empty-state">選擇特定月份後顯示與上個月的比較</div>
+                        </div>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-container full-width"><div class="chart-title">年度月收支趨勢</div><canvas id="barChart"></canvas></div>
+                        <div class="chart-container"><div class="chart-title">收入趨勢</div><canvas id="incomeLineChart"></canvas></div>
+                        <div class="chart-container"><div class="chart-title">支出趨勢</div><canvas id="expenseLineChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI 理財助手（含圓餅圖） -->
+            <div class="ai-section">
+                <div class="ai-header">
+                    <div class="ai-icon">🤖</div>
+                    <div class="ai-title">AI 理財助手</div>
+                </div>
+                <div class="ai-body">
+                    <div class="ai-pie-side">
+                        <div class="chart-title" style="margin-bottom:12px;">支出類別分析</div>
+                        <div class="ai-pie-wrap">
+                            <canvas id="categoryPieChart"></canvas>
+                        </div>
+                        <div class="ai-pie-hint" id="aiPieHint">點擊「AI 自動分類」後圖表將自動更新</div>
+                    </div>
+                    <div class="ai-ctrl-side">
+                        <p style="color:var(--text-secondary);margin-bottom:18px;font-size:0.93rem;line-height:1.7;">使用上方設定的 Claude API Key，AI 會自動將支出項目分類（飲食、交通、娛樂⋯），並即時更新左側圓餅圖，同時可提供本月理財建議。</p>
+                        <div class="ai-btn-col">
+                            <button onclick="aiClassifyAll()"><span>🏷️ AI 自動分類所有支出</span></button>
+                            <button onclick="aiMonthlyAdvice()"><span>📊 本月理財總結與建議</span></button>
+                        </div>
+                        <div class="ai-result" id="cashAiResult"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Credit Tab -->
-        <div class="tab-content" id="tab-credit">
-            <div class="card credit">
-                <div class="card-title">新增信用卡消費</div>
-                <div class="rate-status" id="creditRateStatus"></div>
-                <div class="row">
-                    <div class="form-group">
-                        <label>消費日期</label>
-                        <input type="date" id="creditDate">
+        <!-- ════════════ 信用卡頁 ════════════ -->
+        <div id="tab-credit" class="tab-content">
+            <div class="credit-top-grid">
+                <div class="credit-card-visual">
+                    <div><div class="credit-card-chip">▊▊</div></div>
+                    <div>
+                        <div class="credit-card-label">本月已用額度</div>
+                        <div class="credit-card-balance" id="creditUsed">$0</div>
+                        <div class="credit-progress">
+                            <div class="progress-bar-bg"><div class="progress-bar-fill" id="creditProgressBar" style="width:0%"></div></div>
+                            <div class="progress-text" id="creditProgressText">$0 / $20,000（0%）</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>項目</label>
-                        <input type="text" id="creditItem" placeholder="例如：飯店、購物">
+                    <div class="credit-card-row">
+                        <div class="credit-card-limit-info">
+                            <div class="credit-card-label">剩餘額度</div>
+                            <div style="font-family:'Crimson Pro',serif;font-size:1.8rem;font-weight:600;" id="creditRemaining">$20,000</div>
+                        </div>
+                        <div style="opacity:0.6;font-size:2rem;">💳</div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>金額 (<span id="creditCurrencyLabel1">當地幣</span>)</label>
-                    <input type="number" id="creditAmount" placeholder="0" step="0.01">
+                <div class="credit-form-card">
+                    <div class="credit-form-title">新增信用卡消費</div>
+                    <div class="form-group"><label>日期</label><input type="date" id="creditDate"></div>
+                    <div class="form-group"><label>項目</label><input type="text" id="creditItem" placeholder="例如：便利商店、網購"></div>
+                    <div class="form-group"><label>金額（NT$）</label><input type="number" id="creditAmount" placeholder="0" min="0" step="1"></div>
+                    <div class="form-group"><label>備註（選填）</label><input type="text" id="creditNote" placeholder="額外說明…"></div>
+                    <button onclick="addCreditRecord()"><span>新增消費</span></button>
+                    <div class="credit-limit-setting">
+                        <div class="cls-label">⚙️ 自訂信用卡額度</div>
+                        <div class="cls-row">
+                            <input type="number" id="creditLimitInput" placeholder="目前：$20,000" min="1" step="1000">
+                            <button class="bb-save-btn" onclick="saveCreditLimit()"><span>設定</span></button>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>備註</label>
-                    <input type="text" id="creditNote" placeholder="選填">
-                </div>
-                <div class="rate-hint">送出時將自動抓取當下匯率並換算台幣</div>
-                <button onclick="addCreditRecord()"><span>＋ 新增消費</span></button>
             </div>
-
-            <div class="records-section">
-                <div class="records-header-row">
-                    <div class="records-header">信用卡消費紀錄</div>
-                    <button class="auto secondary export-btn" onclick="exportCSV()"><span>📥 匯出 CSV</span></button>
+            <!-- 信用卡消費趨勢 -->
+            <div class="credit-chart-section">
+                <div class="charts-header">消費趨勢分析</div>
+                <div class="charts-grid">
+                    <div class="chart-container full-width"><div class="chart-title">月度刷卡金額趨勢</div><canvas id="creditBarChart"></canvas></div>
+                    <div class="chart-container"><div class="chart-title">累計刷卡趨勢</div><canvas id="creditLineChart"></canvas></div>
+                    <div class="chart-container"><div class="chart-title">消費類別圓餅</div><canvas id="creditPieChart"></canvas></div>
                 </div>
-                <div class="search-bar">
-                    <input type="text" id="creditSearch" placeholder="搜尋項目或備註..." oninput="renderCreditRecords()">
-                </div>
+            </div>
+            <div class="credit-records">
+                <div class="records-header">消費記錄</div>
                 <div id="creditRecordsList"></div>
-                <div id="creditPagination" class="pagination"></div>
+                <div class="pagination" id="creditPagination"></div>
+            </div>
+            <div class="ai-section">
+                <div class="ai-header">
+                    <div class="ai-icon">🤖</div>
+                    <div class="ai-title">信用卡 AI 分析</div>
+                </div>
+                <p style="color:var(--text-secondary);margin-bottom:15px;font-size:0.95rem;">使用上方設定的 Claude API Key，AI 會自動分類信用卡消費，並分析本月刷卡習慣。</p>
+                <div class="ai-btn-row">
+                    <button onclick="aiClassifyCredit()"><span>🏷️ AI 自動分類信用卡消費</span></button>
+                    <button onclick="aiCreditAdvice()"><span>📊 信用卡消費建議</span></button>
+                </div>
+                <div class="ai-result" id="creditAiResult"></div>
             </div>
         </div>
-    </div>
+
+    </div><!-- end #monthContent -->
 </div>
 
-<!-- Custom Modal (replaces alert/confirm/prompt) -->
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal-box">
-        <div class="modal-icon" id="modalIcon">💬</div>
-        <div class="modal-title" id="modalTitle"></div>
-        <div class="modal-message" id="modalMessage"></div>
-        <div class="modal-input" id="modalInputWrap" style="display:none;">
-            <input type="text" id="modalInput">
+<!-- ══ Toast 通知 ══ -->
+<div id="toastContainer" style="position:fixed;bottom:28px;right:28px;z-index:2000;display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
+
+<!-- ══ 確認刪除 Modal ══ -->
+<div id="confirmModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box confirm-box">
+        <div class="confirm-icon">🗑️</div>
+        <div class="confirm-title">確定要刪除？</div>
+        <div class="confirm-msg" id="confirmMsg">此操作無法復原。</div>
+        <div class="modal-actions">
+            <button class="modal-cancel-btn" onclick="confirmResolve(false)"><span>取消</span></button>
+            <button class="confirm-delete-btn" onclick="confirmResolve(true)"><span>確定刪除</span></button>
         </div>
-        <div class="modal-actions" id="modalActions"></div>
     </div>
 </div>
-
+<div id="editModal" class="modal-overlay" style="display:none;" onclick="closeEditModal(event)">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-title">✏️ 編輯記錄</div>
+            <button class="modal-close" onclick="closeEditModal()">✕</button>
+        </div>
+        <div class="form-group"><label>日期</label><input type="date" id="editDate"></div>
+        <div class="form-group"><label>項目</label><input type="text" id="editItem"></div>
+        <div class="form-group"><label>金額</label><input type="number" id="editAmount" min="0" step="1"></div>
+        <div class="form-group"><label>備註</label><input type="text" id="editNote" placeholder="額外說明…" onkeydown="if(event.key==='Enter') saveEdit()"></div>
+        <input type="hidden" id="editId">
+        <input type="hidden" id="editCollection">
+        <div class="modal-actions">
+            <button class="modal-cancel-btn" onclick="closeEditModal()"><span>取消</span></button>
+            <button onclick="saveEdit()"><span>儲存</span></button>
+        </div>
+    </div>
+</div>
 
 <script type="module">
-// ===== Firebase =====
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import {
+    getFirestore, collection, addDoc, deleteDoc, doc,
+    onSnapshot, query, orderBy, updateDoc
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
+// ═══════════════════════════════════════════
+//  Firebase 初始化
+// ═══════════════════════════════════════════
 const firebaseConfig = {
-    apiKey: "AIzaSyAg0E_k5-EEubKUm7WwI1cT5VIgvzWMyS4",
-    authDomain: "traveling-expensetracker.firebaseapp.com",
-    projectId: "traveling-expensetracker",
-    storageBucket: "traveling-expensetracker.firebasestorage.app",
-    messagingSenderId: "626143162743",
-    appId: "1:626143162743:web:4473f086fa8a631985f172"
+    apiKey: "AIzaSyDCVicJFx0RPV8X6ps4mnX4oxV3wpVvl6g",
+    authDomain: "expense-tracker-3cf75.firebaseapp.com",
+    projectId: "expense-tracker-3cf75",
+    storageBucket: "expense-tracker-3cf75.firebasestorage.app",
+    messagingSenderId: "232171476380",
+    appId: "1:232171476380:web:7241b175cb2510ccc0e459"
 };
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-const FIRESTORE_DOC = 'data/trips';
+// ═══════════════════════════════════════════
+//  資料（由 Firestore 即時填入）
+// ═══════════════════════════════════════════
+let records = [];
+let creditRecords = [];
+let CREDIT_LIMIT = parseInt(localStorage.getItem('creditLimit') || '20000');
 
-let firestoreReady = false;
-let isSyncing = false; // prevent echo loop
+let barChart, incomeLineChart, expenseLineChart, categoryPieChart;
 
-// Show sync status in UI
-function setSyncStatus(state, msg) {
-    let el = document.getElementById('syncStatus');
+// ═══════════════════════════════════════════
+//  固定支出
+// ═══════════════════════════════════════════
+function getFixedExpenses() { return JSON.parse(localStorage.getItem('fixedExpenses') || '[]'); }
+function saveFixedExpenses(list) { localStorage.setItem('fixedExpenses', JSON.stringify(list)); }
+
+function addFixedExpense() {
+    const item = document.getElementById('fixedItem').value.trim();
+    const amount = parseFloat(document.getElementById('fixedAmount').value);
+    if (!item || isNaN(amount) || amount <= 0) { showToast('請輸入項目名稱與金額', 'error'); return; }
+    const list = getFixedExpenses();
+    list.push({ id: Date.now(), item, amount });
+    saveFixedExpenses(list);
+    document.getElementById('fixedItem').value = '';
+    document.getElementById('fixedAmount').value = '';
+    renderFixedList();
+    showToast(`已新增固定項目：${item}`, 'success');
+}
+window.addFixedExpense = addFixedExpense;
+
+async function applyFixedExpense(id) {
+    const list = getFixedExpenses();
+    const r = list.find(r => r.id === id);
+    if (!r) return;
+    const today = new Date().toISOString().split('T')[0];
+    await addDoc(collection(db, "records"), { type:'expense', date: today, item: r.item, amount: r.amount, category:'', note:'固定支出' });
+    showToast(`已加入：${r.item} $${r.amount.toLocaleString()}`, 'success');
+}
+window.applyFixedExpense = applyFixedExpense;
+
+function deleteFixedExpense(id) {
+    const list = getFixedExpenses().filter(r => r.id !== id);
+    saveFixedExpenses(list);
+    renderFixedList();
+    showToast('已刪除固定項目', 'info');
+}
+window.deleteFixedExpense = deleteFixedExpense;
+
+function renderFixedList() {
+    const list = getFixedExpenses();
+    const el = document.getElementById('fixedList');
     if (!el) return;
-    el.textContent = msg;
-    el.className = 'sync-status ' + state;
+    if (!list.length) { el.innerHTML = '<div class="empty-state" style="padding:24px">尚未設定固定支出項目</div>'; return; }
+    el.innerHTML = list.map(r => `
+        <div class="fixed-item-row">
+            <div class="fixed-item-name">📌 ${r.item}</div>
+            <div class="fixed-item-amount">-$${r.amount.toLocaleString()}</div>
+            <button class="fixed-apply-btn" onclick="applyFixedExpense(${r.id})"><span>加入今日</span></button>
+            <button class="fixed-delete-btn" onclick="deleteFixedExpense(${r.id})">刪除</button>
+        </div>`).join('');
 }
 
-// Save to Firestore
-async function saveToFirestore(trips) {
-    if (isSyncing) return;
-    try {
-        await setDoc(doc(db, 'data', 'trips'), { trips: JSON.stringify(trips) });
-        setSyncStatus('ok', '☁️ 已同步');
-    } catch(e) {
-        setSyncStatus('err', '⚠️ 同步失敗，資料已存本機');
-        console.error('Firestore save error:', e);
-    }
+// ═══════════════════════════════════════════
+//  匯出 CSV
+// ═══════════════════════════════════════════
+function exportCSV() {
+    if (!records.length && !creditRecords.length) { showToast('沒有記錄可匯出', 'info'); return; }
+    const rows = [['日期','類型','項目','類別','金額','備註']];
+    const sorted = [...records].sort((a,b) => new Date(a.date) - new Date(b.date));
+    sorted.forEach(r => rows.push([r.date, r.type==='income'?'收入':'支出', r.item, r.category||'', r.amount, r.note||'']));
+    creditRecords.slice().sort((a,b) => new Date(a.date)-new Date(b.date))
+        .forEach(r => rows.push([r.date, '信用卡', r.item, r.category||'', -r.amount, r.note||'']));
+    const bom = '\uFEFF';
+    const csv = bom + rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `記帳本_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast('CSV 已匯出！', 'success');
 }
-
-// Load from Firestore on start, then listen for real-time updates
-function initFirestore() {
-    setSyncStatus('loading', '☁️ 連線中...');
-    const ref = doc(db, 'data', 'trips');
-    onSnapshot(ref, (snap) => {
-        if (snap.exists()) {
-            isSyncing = true;
-            try {
-                const remote = JSON.parse(snap.data().trips || '[]');
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
-                // re-render current view
-                if (currentTripId) {
-                    renderDetail();
-                } else {
-                    renderTripList();
-                }
-            } catch(e) { console.error('Firestore parse error:', e); }
-            isSyncing = false;
-        }
-        firestoreReady = true;
-        setSyncStatus('ok', '☁️ 已同步');
-    }, (err) => {
-        console.error('Firestore listener error:', err);
-        firestoreReady = false;
-        setSyncStatus('err', '⚠️ 離線模式（僅存本機）');
-    });
+window.exportCSV = exportCSV;
+function saveCreditLimit() {
+    const val = parseInt(document.getElementById('creditLimitInput').value);
+    if (isNaN(val) || val < 1) { showToast('請輸入有效額度','error'); return; }
+    localStorage.setItem('creditLimit', val);
+    CREDIT_LIMIT = val;
+    document.getElementById('creditLimitInput').value = '';
+    document.getElementById('creditLimitInput').placeholder = `目前：$${val.toLocaleString()}`;
+    updateCreditDisplay();
+    updateOverviewBanner();
 }
+window.saveCreditLimit = saveCreditLimit;
 
-const STORAGE_KEY = 'travelTrips';
-const TRIPS_PER_PAGE = 10;
-const RECORDS_PER_PAGE = 10;
+// ═══════════════════════════════════════════
+//  搜尋（獨立區塊，不影響記錄列表）
+// ═══════════════════════════════════════════
+function doSearch() {
+    const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    const resultsWrap = document.getElementById('searchResults');
+    const header = document.getElementById('searchResultsHeader');
+    const list = document.getElementById('searchResultsList');
+    const clearBtn = document.getElementById('searchClearBtn');
 
-let currentTripId = null;
-let tripListPageNum = 1;
-let cashPageNum = 1;
-let creditPageNum = 1;
+    if (!keyword) { resultsWrap.style.display = 'none'; clearBtn.style.display = 'none'; return; }
+    clearBtn.style.display = 'inline-flex';
 
-// ===== Data layer =====
-function loadTrips() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-    catch(e) { return []; }
-}
-function saveTrips(trips) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
-    if (!isSyncing) saveToFirestore(trips);
-}
-function getTrip(id) {
-    return loadTrips().find(t => t.id === id);
-}
-function updateTrip(id, fn) {
-    const trips = loadTrips();
-    const idx = trips.findIndex(t => t.id === id);
-    if (idx === -1) return;
-    fn(trips[idx]);
-    saveTrips(trips);
-}
+    // 搜尋現金記錄 + 信用卡記錄
+    const cashHits = records.filter(r =>
+        r.item?.toLowerCase().includes(keyword) ||
+        r.note?.toLowerCase().includes(keyword) ||
+        r.category?.toLowerCase().includes(keyword) ||
+        r.amount?.toString().includes(keyword) ||
+        r.date?.includes(keyword)
+    ).map(r => ({ ...r, _src: 'cash' }));
 
-function uid() { return 'id_' + Date.now() + '_' + Math.floor(Math.random()*100000); }
+    const creditHits = creditRecords.filter(r =>
+        r.item?.toLowerCase().includes(keyword) ||
+        r.note?.toLowerCase().includes(keyword) ||
+        r.category?.toLowerCase().includes(keyword) ||
+        r.amount?.toString().includes(keyword) ||
+        r.date?.includes(keyword)
+    ).map(r => ({ ...r, _src: 'credit' }));
 
-function fmt(n) {
-    n = Math.ceil(Number(n) || 0);
-    return n.toLocaleString('zh-TW');
-}
+    const hits = [...cashHits, ...creditHits].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-// ===== Custom Modal (replaces alert/confirm/prompt) =====
-const modalOverlay = document.getElementById('modalOverlay');
-const modalIcon = document.getElementById('modalIcon');
-const modalTitle = document.getElementById('modalTitle');
-const modalMessage = document.getElementById('modalMessage');
-const modalInputWrap = document.getElementById('modalInputWrap');
-const modalInput = document.getElementById('modalInput');
-const modalActions = document.getElementById('modalActions');
+    resultsWrap.style.display = 'block';
 
-function closeModal() {
-    modalOverlay.classList.remove('show');
-}
-
-function showAlert(message, opts = {}) {
-    return new Promise(resolve => {
-        modalIcon.textContent = opts.icon || '💡';
-        modalTitle.textContent = opts.title || '提示';
-        modalMessage.textContent = message;
-        modalInputWrap.style.display = 'none';
-        modalActions.innerHTML = '';
-        const okBtn = document.createElement('button');
-        okBtn.innerHTML = '<span>知道了</span>';
-        okBtn.onclick = () => { closeModal(); resolve(true); };
-        modalActions.appendChild(okBtn);
-        modalOverlay.classList.add('show');
-    });
-}
-
-function showConfirm(message, opts = {}) {
-    return new Promise(resolve => {
-        modalIcon.textContent = opts.icon || '❓';
-        modalTitle.textContent = opts.title || '請確認';
-        modalMessage.textContent = message;
-        modalInputWrap.style.display = 'none';
-        modalActions.innerHTML = '';
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'secondary';
-        cancelBtn.innerHTML = '<span>取消</span>';
-        cancelBtn.onclick = () => { closeModal(); resolve(false); };
-        const okBtn = document.createElement('button');
-        okBtn.className = opts.danger ? 'danger' : '';
-        okBtn.innerHTML = `<span>${opts.confirmText || '確定'}</span>`;
-        okBtn.onclick = () => { closeModal(); resolve(true); };
-        modalActions.appendChild(cancelBtn);
-        modalActions.appendChild(okBtn);
-        modalOverlay.classList.add('show');
-    });
-}
-
-modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) closeModal();
-});
-
-function showRateInputModal(currencyCode) {
-    return new Promise(resolve => {
-        modalIcon.textContent = '💱';
-        modalTitle.textContent = '無法取得即時匯率';
-        modalMessage.textContent = `自動抓取 ${currencyCode} → TWD 匯率失敗，請手動輸入當下匯率（1 ${currencyCode} = ? TWD）`;
-        modalInputWrap.style.display = 'block';
-        modalInput.type = 'number';
-        modalInput.step = '0.0001';
-        modalInput.placeholder = '例如 0.21';
-        modalInput.value = '';
-        modalActions.innerHTML = '';
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'secondary';
-        cancelBtn.innerHTML = '<span>取消</span>';
-        cancelBtn.onclick = () => { closeModal(); resolve(null); };
-        const okBtn = document.createElement('button');
-        okBtn.innerHTML = '<span>確定</span>';
-        okBtn.onclick = () => {
-            const v = parseFloat(modalInput.value);
-            if (isNaN(v) || v <= 0) { modalInput.focus(); return; }
-            closeModal();
-            resolve(v);
-        };
-        modalActions.appendChild(cancelBtn);
-        modalActions.appendChild(okBtn);
-        modalOverlay.classList.add('show');
-        setTimeout(() => modalInput.focus(), 50);
-    });
-}
-
-// ===== Exchange rate fetching =====
-// Uses exchangerate-api.com's free open endpoint (no API key required, supports CORS)
-const rateCache = {}; // { 'JPY_2024-01-01': rate } cache by currency+date(today only meaningful)
-
-async function fetchRate(currencyCode) {
-    const cacheKey = currencyCode;
-    const now = Date.now();
-    if (rateCache[cacheKey] && (now - rateCache[cacheKey].time) < 5 * 60 * 1000) {
-        return rateCache[cacheKey].rate;
-    }
-    try {
-        const res = await fetch(`https://open.er-api.com/v6/latest/${currencyCode}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        if (data.result !== 'success' || !data.rates || !data.rates.TWD) {
-            throw new Error('無有效匯率資料');
-        }
-        const rate = data.rates.TWD; // 1 unit of currencyCode = X TWD
-        rateCache[cacheKey] = { rate, time: now };
-        return rate;
-    } catch (err) {
-        return null;
-    }
-}
-
-function setRateStatus(elId, state, text) {
-    const el = document.getElementById(elId);
-    el.className = 'rate-status show ' + state;
-    el.textContent = text;
-}
-function clearRateStatus(elId) {
-    const el = document.getElementById(elId);
-    el.className = 'rate-status';
-    el.textContent = '';
-}
-
-// ===== Trip List Page =====
-async function createTrip() {
-    const name = document.getElementById('newTripName').value.trim();
-    const currency = document.getElementById('newTripCurrency').value;
-    const country = document.getElementById('newTripCountry').value.trim();
-    const city = document.getElementById('newTripCity').value.trim();
-    const start = document.getElementById('newTripStart').value;
-    const end = document.getElementById('newTripEnd').value;
-
-    if (!name) {
-        await showAlert('請輸入旅程名稱', { icon: '✏️' });
+    if (!hits.length) {
+        header.textContent = `找不到「${keyword}」相關記錄`;
+        list.innerHTML = '';
         return;
     }
 
-    const trip = {
-        id: uid(),
-        name, currency, country, city, start, end,
-        cashBudget: 0,
-        creditLimit: 0,
-        cashRecords: [],
-        creditRecords: []
-    };
-    const trips = loadTrips();
-    trips.unshift(trip);
-    saveTrips(trips);
+    header.textContent = `找到 ${hits.length} 筆記錄（點擊可跳轉至該項目）`;
 
-    document.getElementById('newTripName').value = '';
-    document.getElementById('newTripCurrency').value = 'JPY';
-    document.getElementById('newTripCountry').value = '';
-    document.getElementById('newTripCity').value = '';
-    document.getElementById('newTripStart').value = '';
-    document.getElementById('newTripEnd').value = '';
-
-    tripListPageNum = 1;
-    renderTripList();
-}
-
-async function deleteTrip(id, evt) {
-    evt.stopPropagation();
-    const ok = await showConfirm('確定要刪除這趟旅程的所有紀錄嗎？此動作無法復原。', { icon: '🗑️', danger: true, confirmText: '刪除' });
-    if (!ok) return;
-    let trips = loadTrips();
-    trips = trips.filter(t => t.id !== id);
-    saveTrips(trips);
-    renderTripList();
-}
-
-function renderTripList() {
-    const trips = loadTrips();
-    const grid = document.getElementById('tripGrid');
-    const pagWrap = document.getElementById('tripPagination');
-
-    if (trips.length === 0) {
-        grid.innerHTML = '<div class="empty-state">尚未建立任何旅程，請在上方新增一趟旅程</div>';
-        pagWrap.innerHTML = '';
-        return;
+    function hl(text) {
+        if (!text) return '';
+        return String(text).replace(new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<span class="search-match">${m}</span>`);
     }
 
-    const totalPages = Math.ceil(trips.length / TRIPS_PER_PAGE);
-    if (tripListPageNum > totalPages) tripListPageNum = totalPages;
-    if (tripListPageNum < 1) tripListPageNum = 1;
-
-    const startIdx = (tripListPageNum - 1) * TRIPS_PER_PAGE;
-    const pageTrips = trips.slice(startIdx, startIdx + TRIPS_PER_PAGE);
-
-    grid.innerHTML = pageTrips.map(t => {
-        const dateRange = (t.start || t.end)
-            ? `${t.start || '?'} ~ ${t.end || '?'}`
-            : '日期未設定';
-        const loc = (t.country || t.city) ? `${t.country || ''}${t.country && t.city ? ' / ' : ''}${t.city || ''}` : '地點未設定';
-        return `
-        <div class="trip-card" onclick="openTrip('${t.id}')">
-            <button class="trip-card-del" onclick="deleteTrip('${t.id}', event)">刪除</button>
-            <div class="trip-card-name">${escapeHtml(t.name)}</div>
-            <div class="trip-card-loc">📍 ${escapeHtml(loc)}</div>
-            <div class="trip-card-date">🗓 ${escapeHtml(dateRange)}</div>
-            <div class="trip-card-currency">${escapeHtml(t.currency)}</div>
+    list.innerHTML = hits.map(r => {
+        const isCash = r._src === 'cash';
+        const isIncome = r.type === 'income';
+        const typeClass = isCash ? (isIncome ? 'income' : 'expense') : 'credit';
+        const typeLabel = isCash ? (isIncome ? '收入' : '支出') : '刷卡';
+        const amountSign = isCash && isIncome ? '+' : '-';
+        return `<div class="search-result-item" onclick="jumpToRecord('${r.firestoreId}','${r._src}')">
+            <div class="sri-type ${typeClass}">${typeLabel}</div>
+            <div class="sri-body">
+                <div class="sri-name">${hl(r.item)}</div>
+                <div class="sri-meta">${r.date}${r.category ? ' · ' + hl(r.category) : ''}${r.note ? ' · 📝 ' + hl(r.note) : ''}</div>
+            </div>
+            <div class="sri-amount ${typeClass}">${amountSign}$${r.amount.toLocaleString()}</div>
+            <div class="sri-arrow">→</div>
         </div>`;
     }).join('');
-
-    // pagination
-    if (totalPages <= 1) {
-        pagWrap.innerHTML = '';
-        return;
-    }
-    let html = `<button class="page-btn" ${tripListPageNum===1?'disabled':''} onclick="changeTripPage(${tripListPageNum-1})">‹ 上一頁</button>`;
-    for (let i=1; i<=totalPages; i++) {
-        html += `<button class="page-btn ${i===tripListPageNum?'active':''}" onclick="changeTripPage(${i})">${i}</button>`;
-    }
-    html += `<button class="page-btn" ${tripListPageNum===totalPages?'disabled':''} onclick="changeTripPage(${tripListPageNum+1})">下一頁 ›</button>`;
-    pagWrap.innerHTML = html;
 }
-function changeTripPage(p) { tripListPageNum = p; renderTripList(); }
+window.doSearch = doSearch;
 
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClearBtn').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('searchResultsList').innerHTML = '';
 }
+window.clearSearch = clearSearch;
 
-// ===== Navigation =====
-function openTrip(id) {
-    currentTripId = id;
-    cashPageNum = 1;
-    creditPageNum = 1;
-    lastFetchedRate = null;
-    document.getElementById('tripListPage').style.display = 'none';
-    document.getElementById('detailPage').style.display = 'block';
-    renderDetail();
-    // wire bidirectional inputs once (not in render loop)
-    wireBidirectional('cashBudgetInputLocal', 'cashBudgetInputTwd', () => lastFetchedRate, 'cashBudgetRateStatus');
-    wireBidirectional('creditLimitInputLocal', 'creditLimitInputTwd', () => lastFetchedRate, 'creditLimitRateStatus');
-    // prefetch rate in background for balance display / bidirectional inputs
-    fetchRate(currentTripCurrency()).then(r => {
-        if (r != null) { lastFetchedRate = r; renderDetail(); }
-    });
-}
-function goToList() {
-    currentTripId = null;
-    document.getElementById('detailPage').style.display = 'none';
-    document.getElementById('tripListPage').style.display = 'block';
-    renderTripList();
-}
-function switchTab(tab) {
-    document.querySelectorAll('.chrome-tab').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
-    document.getElementById('tab-cash').classList.toggle('active', tab === 'cash');
-    document.getElementById('tab-credit').classList.toggle('active', tab === 'credit');
-}
-
-// ===== Detail Page Render =====
-function renderDetail() {
-    const trip = getTrip(currentTripId);
-    if (!trip) { goToList(); return; }
-
-    document.getElementById('detailTripName').textContent = trip.name;
-    const loc = [trip.country, trip.city].filter(Boolean).join(' / ');
-    const dateRange = (trip.start || trip.end) ? `${trip.start||'?'} ~ ${trip.end||'?'}` : '';
-    document.getElementById('detailTripMeta').textContent = [loc, dateRange].filter(Boolean).join('　|　');
-    document.getElementById('detailTripCurrency').textContent = trip.currency;
-
-    // currency labels
-    ['cashCurrencyLabel1','creditCurrencyLabel1'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = trip.currency;
-    });
-
-    renderCashOverview(trip);
-    renderCreditOverview(trip);
-    renderCashRecords();
-    renderCreditRecords();
-}
-
-// ===== Bidirectional local<->TWD input sync =====
-// rateGetter: function returning latest known rate (1 local = X TWD), or null
-function wireBidirectional(localId, twdId, getRate, statusId) {
-    const localEl = document.getElementById(localId);
-    const twdEl = document.getElementById(twdId);
-    let syncing = false;
-    localEl.addEventListener('input', async () => {
-        if (syncing) return;
-        const v = parseFloat(localEl.value);
-        if (isNaN(v)) { twdEl.value = ''; return; }
-        let rate = getRate();
-        if (rate == null) {
-            if (statusId) setRateStatus(statusId, 'loading', '正在抓取即時匯率...');
-            rate = await fetchRate(currentTripCurrency());
-            if (rate == null) {
-                if (statusId) setRateStatus(statusId, 'fail', '無法取得即時匯率，請手動輸入台幣金額');
-                return;
-            }
-            if (statusId) setRateStatus(statusId, 'ok', `即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
-            lastFetchedRate = rate;
-        }
-        syncing = true;
-        twdEl.value = (v * rate).toFixed(2);
-        syncing = false;
-    });
-    twdEl.addEventListener('input', async () => {
-        if (syncing) return;
-        const v = parseFloat(twdEl.value);
-        if (isNaN(v)) { localEl.value = ''; return; }
-        let rate = getRate();
-        if (rate == null) {
-            if (statusId) setRateStatus(statusId, 'loading', '正在抓取即時匯率...');
-            rate = await fetchRate(currentTripCurrency());
-            if (rate == null) {
-                if (statusId) setRateStatus(statusId, 'fail', '無法取得即時匯率，請手動輸入當地幣金額');
-                return;
-            }
-            if (statusId) setRateStatus(statusId, 'ok', `即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
-            lastFetchedRate = rate;
-        }
-        syncing = true;
-        localEl.value = (v / rate).toFixed(2);
-        syncing = false;
-    });
-}
-let lastFetchedRate = null; // cache of most recently fetched rate this session
-function currentTripCurrency() {
-    const trip = getTrip(currentTripId);
-    return trip ? trip.currency : 'USD';
-}
-
-// ===== Cash =====
-async function addCashBudget() {
-    const localEl = document.getElementById('cashBudgetInputLocal');
-    const twdEl = document.getElementById('cashBudgetInputTwd');
-    let val = parseFloat(localEl.value);
-    let valTwd = parseFloat(twdEl.value);
-
-    if (isNaN(val) && isNaN(valTwd)) {
-        await showAlert('請輸入金額（當地幣或台幣皆可）', { icon: '✏️' });
-        return;
-    }
-    if (isNaN(val)) {
-        // only TWD given, convert
-        setRateStatus('cashBudgetRateStatus', 'loading', '正在抓取即時匯率...');
-        const rate = await fetchRate(currentTripCurrency());
-        if (rate == null) {
-            setRateStatus('cashBudgetRateStatus', 'fail', '無法取得即時匯率，請改輸入當地幣金額');
-            return;
-        }
-        val = valTwd / rate;
-        setRateStatus('cashBudgetRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
-    }
-
-    updateTrip(currentTripId, t => { t.cashBudget = (t.cashBudget || 0) + val; });
-    localEl.value = '';
-    twdEl.value = '';
-    renderDetail();
-}
-
-function renderCashOverview(trip) {
-    const budget = trip.cashBudget || 0;
-    let spent = 0, spentTwd = 0;
-
-    trip.cashRecords.forEach(r => { spent += r.amount; spentTwd += r.amount * r.rate; });
-
-    const avgRate = trip.cashRecords.length > 0
-        ? trip.cashRecords.reduce((s,r)=>s+r.rate,0) / trip.cashRecords.length
-        : (lastFetchedRate || 0);
-
-    const balance = budget - spent;
-    const balanceTwd = balance * avgRate;
-
-    document.getElementById('cashBudgetVal').textContent = fmt(budget) + ' ' + trip.currency;
-    document.getElementById('cashSpentVal').textContent = fmt(spent) + ' ' + trip.currency;
-    document.getElementById('cashBalanceVal').textContent = fmt(balance) + ' ' + trip.currency;
-    document.getElementById('cashBalanceTwd').textContent = 'NT$ ' + fmt(balanceTwd);
-
-    // update top summary bar (cash side)
-    document.getElementById('topCashSpentLocal').textContent = fmt(spent) + ' ' + trip.currency;
-    document.getElementById('topCashSpent').textContent = 'NT$ ' + fmt(spentTwd);
-}
-
-async function addCashRecord() {
-    const date = document.getElementById('cashDate').value;
-    const item = document.getElementById('cashItem').value.trim();
-    const amount = parseFloat(document.getElementById('cashAmount').value);
-    const note = document.getElementById('cashNote').value.trim();
-
-    if (!date || !item || isNaN(amount)) {
-        await showAlert('請填寫日期、項目與金額', { icon: '✏️' });
-        return;
-    }
-
-    setRateStatus('cashRateStatus', 'loading', '正在抓取當下即時匯率...');
-    let rate = await fetchRate(currentTripCurrency());
-    if (rate == null) {
-        clearRateStatus('cashRateStatus');
-        const manualRate = await showRateInputModal(currentTripCurrency());
-        if (manualRate == null) return; // cancelled
-        rate = manualRate;
+function jumpToRecord(firestoreId, src) {
+    // 如果是信用卡，先切到信用卡 tab
+    if (src === 'credit') {
+        const creditTab = document.querySelector('.chrome-tab:nth-child(2)');
+        if (creditTab) switchTab('credit', creditTab);
     } else {
-        lastFetchedRate = rate;
-        setRateStatus('cashRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+        const cashTab = document.querySelector('.chrome-tab:nth-child(1)');
+        if (cashTab) switchTab('cash', cashTab);
     }
-
-    updateTrip(currentTripId, t => {
-        t.cashRecords.unshift({ id: uid(), date, item, amount, rate, note });
-    });
-
-    document.getElementById('cashDate').value = '';
-    document.getElementById('cashItem').value = '';
-    document.getElementById('cashAmount').value = '';
-    document.getElementById('cashNote').value = '';
-
-    cashPageNum = 1;
-    renderDetail();
-}
-
-async function deleteCashRecord(id) {
-    const ok = await showConfirm('確定刪除這筆紀錄？', { icon: '🗑️', danger: true, confirmText: '刪除' });
-    if (!ok) return;
-    updateTrip(currentTripId, t => {
-        t.cashRecords = t.cashRecords.filter(r => r.id !== id);
-    });
-    renderDetail();
-}
-
-function renderCashRecords() {
-    const trip = getTrip(currentTripId);
-    if (!trip) return;
-    const search = (document.getElementById('cashSearch').value || '').toLowerCase();
-
-    let records = trip.cashRecords.slice();
-    if (search) {
-        records = records.filter(r =>
-            r.item.toLowerCase().includes(search) || (r.note||'').toLowerCase().includes(search)
-        );
-    }
-
-    const listEl = document.getElementById('cashRecordsList');
-    const pagEl = document.getElementById('cashPagination');
-
-    if (records.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">尚無紀錄</div>';
-        pagEl.innerHTML = '';
-        return;
-    }
-
-    const totalPages = Math.ceil(records.length / RECORDS_PER_PAGE);
-    if (cashPageNum > totalPages) cashPageNum = totalPages;
-    if (cashPageNum < 1) cashPageNum = 1;
-
-    const startIdx = (cashPageNum - 1) * RECORDS_PER_PAGE;
-    const pageRecords = records.slice(startIdx, startIdx + RECORDS_PER_PAGE);
-
-    listEl.innerHTML = pageRecords.map(r => `
-        <div class="record-item">
-            <div class="record-date">${escapeHtml(r.date)}</div>
-            <div class="record-desc">${escapeHtml(r.item)}${r.note ? `<span class="record-note">${escapeHtml(r.note)}</span>` : ''}</div>
-            <div class="record-rate">匯率 1 ${escapeHtml(trip.currency)} = ${r.rate} TWD</div>
-            <div class="record-amounts">
-                <div class="record-amount-orig">${fmt(r.amount)} ${escapeHtml(trip.currency)}</div>
-                <div class="record-amount-twd">≈ NT$ ${fmt(r.amount * r.rate)}</div>
-            </div>
-            <button class="delete-btn" onclick="deleteCashRecord('${r.id}')">刪除</button>
-        </div>
-    `).join('');
-
-    renderPagination(pagEl, totalPages, cashPageNum, p => { cashPageNum = p; renderCashRecords(); });
-}
-
-async function clearCashBudget() {
-    const ok = await showConfirm('確定將現金預算清零？此動作無法復原。', { icon: '🗑️', danger: true, confirmText: '清零' });
-    if (!ok) return;
-    updateTrip(currentTripId, t => { t.cashBudget = 0; });
-    renderDetail();
-}
-
-// ===== Credit =====
-async function setCreditLimit() {
-    const localEl = document.getElementById('creditLimitInputLocal');
-    const twdEl = document.getElementById('creditLimitInputTwd');
-    let val = parseFloat(localEl.value);
-    let valTwd = parseFloat(twdEl.value);
-
-    if (isNaN(val) && isNaN(valTwd)) {
-        await showAlert('請輸入額度（當地幣或台幣皆可）', { icon: '✏️' });
-        return;
-    }
-    if (isNaN(val)) {
-        setRateStatus('creditLimitRateStatus', 'loading', '正在抓取即時匯率...');
-        const rate = await fetchRate(currentTripCurrency());
-        if (rate == null) {
-            setRateStatus('creditLimitRateStatus', 'fail', '無法取得即時匯率，請改輸入當地幣金額');
-            return;
+    // 等 DOM 更新後找到該記錄並高亮跳轉
+    setTimeout(() => {
+        const targetId = `record-${firestoreId}`;
+        const el = document.getElementById(targetId);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('record-highlight');
+            setTimeout(() => el.classList.remove('record-highlight'), 2000);
         }
-        val = valTwd / rate;
-        setRateStatus('creditLimitRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
+    }, 100);
+}
+window.jumpToRecord = jumpToRecord;
+// ═══════════════════════════════════════════
+//  自訂確認 Modal
+// ═══════════════════════════════════════════
+let _confirmResolve = null;
+function showConfirm(msg) {
+    document.getElementById('confirmMsg').textContent = msg || '此操作無法復原。';
+    document.getElementById('confirmModal').style.display = 'flex';
+    return new Promise(resolve => { _confirmResolve = resolve; });
+}
+function confirmResolve(result) {
+    document.getElementById('confirmModal').style.display = 'none';
+    if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+window.confirmResolve = confirmResolve;
+
+// ═══════════════════════════════════════════
+//  Toast 通知
+// ═══════════════════════════════════════════
+function showToast(msg, type = 'info') {
+    const icons = { success: '✅', error: '⚠️', info: '💡' };
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[type]}</span><span class="toast-text">${msg}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+function saveApiKey() {
+    const val = document.getElementById('globalApiKey').value.trim();
+    if (!val) { showToast('請輸入 Claude API Key','error'); return; }
+    localStorage.setItem('claudeApiKey', val);
+    updateKeyBadge();
+    showToast('Claude API Key 已儲存！','success');
+}
+function getApiKey() { return localStorage.getItem('claudeApiKey') || ''; }
+function updateKeyBadge() {
+    const badge = document.getElementById('keyBadge');
+    if (getApiKey()) { badge.textContent = '✓ 已設定'; badge.className = 'key-badge ok'; }
+    else { badge.textContent = '未設定'; badge.className = 'key-badge none'; }
+}
+async function testApiKey() {
+    const key = getApiKey();
+    if (!key) { showToast('請先儲存 Claude API Key','error'); return; }
+    showToast('測試中…','info');
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': key,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 10,
+                messages: [{ role: 'user', content: 'hi' }]
+            })
+        });
+        if (res.ok) { showToast('✅ API Key 有效，連線正常！','success'); }
+        else {
+            const err = await res.json();
+            showToast('❌ ' + (err.error?.message || '驗證失敗'),'error');
+        }
+    } catch(e) {
+        showToast('❌ 連線失敗：' + e.message,'error');
+    }
+}
+function resetApiKey() {
+    localStorage.removeItem('claudeApiKey');
+    document.getElementById('globalApiKey').value = '';
+    updateKeyBadge();
+    showToast('API Key 已清除','info');
+}
+window.saveApiKey = saveApiKey;
+window.testApiKey = testApiKey;
+window.resetApiKey = resetApiKey;
+
+// ═══════════════════════════════════════════
+//  頁籤切換
+// ═══════════════════════════════════════════
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.chrome-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+}
+window.switchTab = switchTab;
+
+// ═══════════════════════════════════════════
+//  銀行帳戶餘額（localStorage）
+// ═══════════════════════════════════════════
+function saveBankBalance() {
+    const val = parseFloat(document.getElementById('bankBalanceInput').value);
+    if (isNaN(val) || val < 0) { showToast('請輸入有效金額','error'); return; }
+    localStorage.setItem('bankBalance', val);
+    updateOverviewBanner();
+}
+function getBankBalance() { return parseFloat(localStorage.getItem('bankBalance') || '0'); }
+window.saveBankBalance = saveBankBalance;
+
+// ═══════════════════════════════════════════
+//  總覽橫幅
+// ═══════════════════════════════════════════
+function updateOverviewBanner() {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+    const monthName = (m+1)+'月';
+
+    const thisMonthRecords = records.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===y&&d.getMonth()===m; });
+    const totalIncome  = thisMonthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const totalExpense = thisMonthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+
+    const thisMonthCredit = creditRecords.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===y&&d.getMonth()===m; });
+    const creditUsed  = thisMonthCredit.reduce((s,r)=>s+r.amount,0);
+    const creditRemain = Math.max(CREDIT_LIMIT - creditUsed, 0);
+    const bank = getBankBalance();
+    const monthlyTotal = totalExpense + creditUsed;
+
+    // 更新 label 顯示當月
+    const incomeLabel  = document.querySelector('[id="ovCashIncome"]')?.closest('.ov-item')?.querySelector('.ov-label');
+    const expenseLabel = document.querySelector('[id="ovCashExpense"]')?.closest('.ov-item')?.querySelector('.ov-label');
+    if (incomeLabel)  incomeLabel.textContent  = `💵 ${monthName}現金收入`;
+    if (expenseLabel) expenseLabel.textContent = `💸 ${monthName}現金支出`;
+
+    document.getElementById('ovCashIncome').textContent   = '$'+totalIncome.toLocaleString();
+    document.getElementById('ovCashExpense').textContent  = '$'+totalExpense.toLocaleString();
+    document.getElementById('ovCreditExpense').textContent = '$'+creditUsed.toLocaleString();
+    document.getElementById('ovCreditRemain').textContent  = '$'+creditRemain.toLocaleString();
+    document.getElementById('ovBankBalance').textContent   = '$'+bank.toLocaleString();
+    document.getElementById('ovMonthlyTotal').textContent  = '$'+monthlyTotal.toLocaleString();
+    document.getElementById('ovMonthlyLabel').textContent  = monthName+'現金 $'+totalExpense.toLocaleString()+'＋信用卡 $'+creditUsed.toLocaleString();
+    updateBudgetDisplay(monthlyTotal);
+}
+
+// ═══════════════════════════════════════════
+//  預算設定
+// ═══════════════════════════════════════════
+function saveBudget() {
+    const val = parseFloat(document.getElementById('budgetInput').value);
+    if (isNaN(val) || val <= 0) { showToast('請輸入有效預算金額','error'); return; }
+    localStorage.setItem('monthlyBudget', val);
+    document.getElementById('budgetInput').value = '';
+    updateBudgetDisplay();
+}
+function getBudget() { return parseFloat(localStorage.getItem('monthlyBudget') || '0'); }
+function updateBudgetDisplay(currentSpend) {
+    const budget = getBudget();
+    const displayEl = document.getElementById('budgetDisplay');
+    const wrapEl = document.getElementById('budgetProgressWrap');
+    const fillEl = document.getElementById('budgetProgressFill');
+    const textEl = document.getElementById('budgetProgressText');
+    if (!budget) { displayEl.textContent = '未設定'; displayEl.className = 'bb-value'; wrapEl.style.display = 'none'; return; }
+    if (currentSpend === undefined) {
+        const now = new Date();
+        const cashM = records.filter(r=>{ const d=new Date(r.date); return r.type==='expense'&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); }).reduce((s,r)=>s+r.amount,0);
+        const creditM = creditRecords.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); }).reduce((s,r)=>s+r.amount,0);
+        currentSpend = cashM + creditM;
+    }
+    const pct = Math.min(Math.round(currentSpend / budget * 100), 999);
+    const remaining = budget - currentSpend;
+    displayEl.textContent = '$' + budget.toLocaleString();
+    displayEl.className = remaining < 0 ? 'bb-value over-budget' : 'bb-value';
+    wrapEl.style.display = 'block';
+    fillEl.style.width = Math.min(pct, 100) + '%';
+    fillEl.className = 'bb-progress-fill' + (pct >= 100 ? ' over' : pct >= 80 ? ' warn' : '');
+    textEl.textContent = remaining >= 0
+        ? `已用 ${pct}%，剩餘預算 $${remaining.toLocaleString()}`
+        : `⚠️ 已超支 $${Math.abs(remaining).toLocaleString()}（${pct}%）`;
+}
+window.saveBudget = saveBudget;
+
+function resetBudget() {
+    localStorage.removeItem('monthlyBudget');
+    document.getElementById('budgetInput').value = '';
+    document.getElementById('budgetInput').placeholder = '輸入預算金額';
+    updateBudgetDisplay();
+}
+function resetBillDay() {
+    localStorage.removeItem('creditBillDay');
+    localStorage.removeItem('creditBillDayUsed');
+    document.getElementById('billDayInput').value = '';
+    document.getElementById('billDayInput').placeholder = '每月幾號';
+    updateBillingDisplay();
+}
+function resetPayDay() {
+    localStorage.removeItem('creditPayDay');
+    localStorage.removeItem('creditPayDayUsed');
+    document.getElementById('payDayInput').value = '';
+    document.getElementById('payDayInput').placeholder = '每月幾號';
+    updateBillingDisplay();
+}
+window.resetBudget = resetBudget;
+window.resetBillDay = resetBillDay;
+window.resetPayDay = resetPayDay;
+
+// ═══════════════════════════════════════════
+//  帳單日 & 繳費日
+// ═══════════════════════════════════════════
+function saveBillDay() {
+    const val = parseInt(document.getElementById('billDayInput').value);
+    if (isNaN(val)||val<1||val>31) { showToast('請輸入 1–31 的日期','error'); return; }
+    localStorage.setItem('creditBillDay', val);
+    localStorage.removeItem('creditBillDayUsed'); // 重新計時
+    document.getElementById('billDayInput').value = '';
+    updateBillingDisplay();
+}
+function savePayDay() {
+    const val = parseInt(document.getElementById('payDayInput').value);
+    if (isNaN(val)||val<1||val>31) { showToast('請輸入 1–31 的日期','error'); return; }
+    localStorage.setItem('creditPayDay', val);
+    localStorage.removeItem('creditPayDayUsed');
+    document.getElementById('payDayInput').value = '';
+    updateBillingDisplay();
+}
+function daysUntil(targetDay) {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), targetDay);
+    const nextMonth = new Date(now.getFullYear(), now.getMonth()+1, targetDay);
+    const target = thisMonth > now ? thisMonth : nextMonth;
+    return Math.ceil((target - now) / (1000*60*60*24));
+}
+// 檢查今天是否已經「過了」設定的那一天（含當天）；若是則自動清空設定
+function checkAndResetDay(storageKey, usedKey, day) {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const targetThisMonth = new Date(now.getFullYear(), now.getMonth(), day);
+    const isTargetDayOrPast = now >= new Date(targetThisMonth.getFullYear(), targetThisMonth.getMonth(), targetThisMonth.getDate());
+
+    if (isTargetDayOrPast) {
+        const usedDate = localStorage.getItem(usedKey);
+        if (usedDate !== todayStr) {
+            // 標記今天已觸發過提醒，但下次重新整理（過了今天）才真正清空
+            if (!usedDate) {
+                localStorage.setItem(usedKey, todayStr);
+            } else if (usedDate !== todayStr) {
+                // 已經是隔天了 → 清空設定
+                localStorage.removeItem(storageKey);
+                localStorage.removeItem(usedKey);
+                return true; // 已重置
+            }
+        }
+    }
+    return false;
+}
+function updateBillingDisplay() {
+    const billDay = parseInt(localStorage.getItem('creditBillDay') || '0');
+    const payDay = parseInt(localStorage.getItem('creditPayDay') || '0');
+    const billDisp = document.getElementById('billDayDisplay');
+    const billCount = document.getElementById('billDayCountdown');
+    const payDisp = document.getElementById('payDayDisplay');
+    const payCount = document.getElementById('payDayCountdown');
+
+    let billDayActive = billDay, payDayActive = payDay;
+
+    if (billDay) {
+        if (checkAndResetDay('creditBillDay', 'creditBillDayUsed', billDay)) {
+            billDayActive = 0;
+            document.getElementById('billDayInput').placeholder = '每月幾號';
+            showToast('信用卡帳單日已重置，請設定下個月日期', 'info');
+        }
+    }
+    if (payDay) {
+        if (checkAndResetDay('creditPayDay', 'creditPayDayUsed', payDay)) {
+            payDayActive = 0;
+            document.getElementById('payDayInput').placeholder = '每月幾號';
+            showToast('信用卡繳費日已重置，請設定下個月日期', 'info');
+        }
     }
 
-    updateTrip(currentTripId, t => { t.creditLimit = val; });
-    localEl.value = '';
-    twdEl.value = '';
-    renderDetail();
+    if (billDayActive) {
+        billDisp.textContent = `每月 ${billDayActive} 號`;
+        const d = daysUntil(billDayActive);
+        billCount.textContent = d === 0 ? '⚠️ 今天是帳單日！' : `還有 ${d} 天`;
+        billCount.className = 'bb-sub' + (d <= 3 ? ' urgent' : '');
+    } else { billDisp.textContent = '未設定'; billCount.textContent = ''; }
+
+    if (payDayActive) {
+        payDisp.textContent = `每月 ${payDayActive} 號`;
+        const d = daysUntil(payDayActive);
+        payCount.textContent = d === 0 ? '⚠️ 今天是繳費日！' : `還有 ${d} 天`;
+        payCount.className = 'bb-sub' + (d <= 3 ? ' urgent' : '');
+    } else { payDisp.textContent = '未設定'; payCount.textContent = ''; }
+
+    // show saved values in inputs as placeholder
+    if (billDayActive) document.getElementById('billDayInput').placeholder = `目前：${billDayActive} 號`;
+    if (payDayActive) document.getElementById('payDayInput').placeholder = `目前：${payDayActive} 號`;
+}
+window.saveBillDay = saveBillDay;
+window.savePayDay = savePayDay;
+
+// ═══════════════════════════════════════════
+//  月份選擇器
+// ═══════════════════════════════════════════
+let selectedMonth = '';
+
+let selectedYear = String(new Date().getFullYear());
+
+function initYearOptions() {
+    const inner = document.getElementById('yearDropdownInner');
+    if (!inner) return;
+    const years = ['', ...Array.from({length: 11}, (_,i) => String(2026 + i))]; // '' + 2026~2036
+    inner.innerHTML = years.map(y => {
+        const label = y === '' ? '全部年度' : y + '年';
+        const active = (y === selectedYear) ? 'active' : '';
+        return `<button class="year-option ${active}" data-y="${y}" onclick="pickYear(this)">${label}</button>`;
+    }).join('');
+    // Set trigger label
+    const triggerLabel = document.getElementById('yearTriggerLabel');
+    if (triggerLabel) triggerLabel.textContent = selectedYear ? selectedYear + '年' : '全部年度';
 }
 
-function renderCreditOverview(trip) {
-    const limit = trip.creditLimit || 0;
-    let spent = 0, spentTwd = 0;
-    trip.creditRecords.forEach(r => { spent += r.amount; spentTwd += r.amount * r.rate; });
-
-    // total spend across cash + credit (TWD)
-    let cashSpentTwd = 0;
-    trip.cashRecords.forEach(r => { cashSpentTwd += r.amount * r.rate; });
-    const totalTwd = cashSpentTwd + spentTwd;
-
-    document.getElementById('creditLimitVal').textContent = fmt(limit) + ' ' + trip.currency;
-    document.getElementById('creditSpentVal').textContent = fmt(spent) + ' ' + trip.currency;
-    document.getElementById('totalSpentTwd').textContent = 'NT$ ' + fmt(totalTwd);
-
-    // update top summary bar
-    const cashSpent = trip.cashRecords.reduce((s, r) => s + r.amount, 0);
-    const creditSpent = trip.creditRecords.reduce((s, r) => s + r.amount, 0);
-    document.getElementById('topCashSpentLocal').textContent = fmt(cashSpent) + ' ' + trip.currency;
-    document.getElementById('topCashSpent').textContent = 'NT$ ' + fmt(cashSpentTwd);
-    document.getElementById('topCreditSpentLocal').textContent = fmt(creditSpent) + ' ' + trip.currency;
-    document.getElementById('topCreditSpent').textContent = 'NT$ ' + fmt(spentTwd);
-    document.getElementById('topTotalSpentLocal').textContent = fmt(cashSpent + creditSpent) + ' ' + trip.currency;
-    document.getElementById('topTotalSpent').textContent = 'NT$ ' + fmt(totalTwd);
+function toggleYearDropdown() {
+    const dropdown = document.getElementById('yearDropdown');
+    const trigger = document.getElementById('yearTrigger');
+    const isOpen = dropdown.style.display !== 'none';
+    dropdown.style.display = isOpen ? 'none' : 'block';
+    trigger.classList.toggle('open', !isOpen);
+    if (!isOpen) {
+        // scroll active option into view
+        const active = dropdown.querySelector('.year-option.active');
+        if (active) active.scrollIntoView({ block: 'nearest' });
+    }
 }
+window.toggleYearDropdown = toggleYearDropdown;
 
-async function clearCreditLimit() {
-    const ok = await showConfirm('確定將信用卡額度清零？此動作無法復原。', { icon: '🗑️', danger: true, confirmText: '清零' });
-    if (!ok) return;
-    updateTrip(currentTripId, t => { t.creditLimit = 0; });
-    renderDetail();
+function pickYear(btn) {
+    document.querySelectorAll('.year-option').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedYear = btn.dataset.y;
+    document.getElementById('yearTriggerLabel').textContent = selectedYear ? selectedYear + '年' : '全部年度';
+    document.getElementById('yearDropdown').style.display = 'none';
+    document.getElementById('yearTrigger').classList.remove('open');
+    updateDisplay();
 }
+window.pickYear = pickYear;
 
-function csvCell(v) {
-    if (v === null || v === undefined) return '';
-    const s = String(v);
-    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('yearTrigger')?.closest('.year-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('yearDropdown').style.display = 'none';
+        document.getElementById('yearTrigger')?.classList.remove('open');
+    }
+});
+
+function selectMonth(btn) {
+    document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMonth = btn.dataset.m;
+    const hint = document.getElementById('monthPickerHint');
+    const content = document.getElementById('monthContent');
+    const title = document.getElementById('summaryTitle');
+    if (selectedMonth === '') {
+        hint.textContent = '顯示全部記錄';
+        content.style.display = 'block';
+        if (title) title.textContent = '全部財務總覽';
+    } else {
+        const names = ['','一','二','三','四','五','六','七','八','九','十','十一','十二'];
+        hint.textContent = `目前顯示：${names[selectedMonth]}月的記錄`;
+        content.style.display = 'block';
+        if (title) title.textContent = `${names[selectedMonth]}月財務總覽`;
+    }
+    updateDisplay();
 }
-function csvRow(arr) { return arr.map(csvCell).join(','); }
+window.selectMonth = selectMonth;
 
-function recordCreatedAt(id) {
-    // id 格式：id_<timestamp>_<random>，從中還原新增時間
-    const m = /^id_(\d{10,})_/.exec(id || '');
-    if (!m) return '';
-    const d = new Date(Number(m[1]));
-    const p = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function exportCSV() {
-    const trip = getTrip(currentTripId);
-    if (!trip) return;
-    const cur = trip.currency;
-
-    // 把現金與信用卡合併成一張明細表，依消費日期排序
-    const all = [
-        ...trip.cashRecords.map(r => ({ type: '現金', r })),
-        ...trip.creditRecords.map(r => ({ type: '信用卡', r }))
-    ].sort((a, b) => (a.r.date || '').localeCompare(b.r.date || '') || (a.r.id || '').localeCompare(b.r.id || ''));
-
-    const lines = [];
-    lines.push(csvRow(['序號', '旅程', '國家', '城市', '付款方式', '消費日期', '項目', '備註', '幣別',
-        `金額(${cur})`, `匯率(1 ${cur}=TWD)`, '台幣金額(TWD,無條件進位)', '記錄新增時間']));
-
-    all.forEach((x, i) => {
-        const r = x.r;
-        lines.push(csvRow([
-            i + 1, trip.name, trip.country || '', trip.city || '', x.type,
-            r.date, r.item, r.note || '', cur,
-            r.amount, r.rate, Math.ceil(r.amount * r.rate), recordCreatedAt(r.id)
-        ]));
+function getFilteredRecords() {
+    const y = selectedYear;
+    const m = selectedMonth;
+    return records.filter(r => {
+        const d = new Date(r.date);
+        return (!y || d.getFullYear() == y) && (!m || (d.getMonth()+1) == m);
     });
-
-    // 彙總區（與明細隔一行）
-    const cashSpent = trip.cashRecords.reduce((s, r) => s + r.amount, 0);
-    const cashSpentTwd = trip.cashRecords.reduce((s, r) => s + r.amount * r.rate, 0);
-    const creditSpent = trip.creditRecords.reduce((s, r) => s + r.amount, 0);
-    const creditSpentTwd = trip.creditRecords.reduce((s, r) => s + r.amount * r.rate, 0);
-    const budget = trip.cashBudget || 0;
-    lines.push('');
-    lines.push(csvRow(['彙總', '項目', `金額(${cur})`, '台幣金額(TWD)']));
-    lines.push(csvRow(['', '現金預算', budget, '']));
-    lines.push(csvRow(['', '現金支出', cashSpent, Math.ceil(cashSpentTwd)]));
-    lines.push(csvRow(['', '現金餘額', budget - cashSpent, '']));
-    lines.push(csvRow(['', '信用卡額度', trip.creditLimit || 0, '']));
-    lines.push(csvRow(['', '信用卡支出', creditSpent, Math.ceil(creditSpentTwd)]));
-    lines.push(csvRow(['', '總支出', cashSpent + creditSpent, Math.ceil(cashSpentTwd + creditSpentTwd)]));
-
-    // 加 UTF-8 BOM，Excel 開啟中文才不會亂碼
-    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-    const safeName = String(trip.name).replace(/[\\/:*?"<>|]/g, '_');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${safeName}_記帳明細_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+function calculateStats() {
+    const filtered = getFilteredRecords();
+    const income = filtered.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const expense = filtered.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    const balance = income - expense;
+    document.getElementById('totalIncome').textContent = '$'+income.toLocaleString();
+    document.getElementById('totalExpense').textContent = '$'+expense.toLocaleString();
+    const netEl = document.getElementById('netBalance');
+    netEl.textContent = '$'+balance.toLocaleString();
+    netEl.style.color = balance>=0 ? 'var(--income-color)' : 'var(--expense-color)';
+}
+
+async function deleteRecord(firestoreId) {
+    const ok = await showConfirm('確定要刪除這筆記錄？此操作無法復原。');
+    if (!ok) return;
+    await deleteDoc(doc(db, "records", firestoreId));
+}
+window.deleteRecord = deleteRecord;
+
+const PAGE_SIZE = 20;
+let cashPage = 1;
+let creditPage = 1;
+
+function displayRecords() {
+    const filtered = getFilteredRecords().sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const list = document.getElementById('recordsList');
+    const pagination = document.getElementById('cashPagination');
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    cashPage = Math.min(cashPage, totalPages);
+    const paged = filtered.slice((cashPage-1)*PAGE_SIZE, cashPage*PAGE_SIZE);
+
+    if (!filtered.length) { list.innerHTML='<div class="empty-state">尚無記錄，請開始記帳</div>'; pagination.innerHTML=''; return; }
+    list.innerHTML = paged.map(r=>`
+        <div class="record-item ${r.type}" id="record-${r.firestoreId}">
+            <div class="record-date">${r.date}</div>
+            <div>
+                <div class="record-description">${r.item}</div>
+                ${r.note ? `<div class="record-note">📝 ${r.note}</div>` : ''}
+            </div>
+            <div class="record-category">${r.category||'未分類'}</div>
+            <div class="record-amount">${r.type==='income'?'+':'-'}$${r.amount.toLocaleString()}</div>
+            <div class="record-type">${r.type==='income'?'收入':'支出'}</div>
+            <div style="display:flex;gap:6px;">
+                <button class="edit-btn" onclick="openEditModal('${r.firestoreId}','records')">編輯</button>
+                <button class="delete-btn" onclick="deleteRecord('${r.firestoreId}')">刪除</button>
+            </div>
+        </div>`).join('');
+    renderPagination('cashPagination', cashPage, totalPages, filtered.length, (p)=>{ cashPage=p; displayRecords(); });
+}
+
+function renderPagination(elId, current, total, totalItems, onPage) {
+    const el = document.getElementById(elId);
+    if (total <= 1) { el.innerHTML=''; return; }
+    // store callback on window keyed by elId so onclick can reach it
+    window['__pg_'+elId] = onPage;
+    let html = '';
+    html += `<button class="page-btn" onclick="window['__pg_${elId}'](${Math.max(1,current-1)})" ${current===1?'disabled':''}>‹</button>`;
+    for (let p=1; p<=total; p++) {
+        if (total > 7 && Math.abs(p-current) > 2 && p!==1 && p!==total) {
+            if (p===2||p===total-1) html += `<span class="page-info">…</span>`;
+            continue;
+        }
+        html += `<button class="page-btn ${p===current?'active':''}" onclick="window['__pg_${elId}'](${p})">${p}</button>`;
+    }
+    html += `<button class="page-btn" onclick="window['__pg_${elId}'](${Math.min(total,current+1)})" ${current===total?'disabled':''}>›</button>`;
+    html += `<span class="page-info">共 ${totalItems} 筆</span>`;
+    el.innerHTML = html;
+}
+
+function updateDisplay() { calculateStats(); displayRecords(); updateCharts(); updateOverviewBanner(); updateSavingsRate(); updateMomComparison(); }
+
+// ═══════════════════════════════════════════
+//  圖表初始化
+// ═══════════════════════════════════════════
+function initCharts() {
+    const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+        type:'bar',
+        data:{ labels:months, datasets:[
+            { label:'收入', data:Array(12).fill(0), backgroundColor:'rgba(45,107,63,0.75)', borderColor:'rgba(45,107,63,1)', borderWidth:1, borderRadius:6 },
+            { label:'支出', data:Array(12).fill(0), backgroundColor:'rgba(139,58,42,0.75)', borderColor:'rgba(139,58,42,1)', borderWidth:1, borderRadius:6 }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:true,
+            scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'$'+v.toLocaleString(), color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ color:'rgba(180,155,120,0.15)' } }, x:{ ticks:{ color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ display:false } } },
+            plugins:{ legend:{ position:'top', labels:{ color:'#2a1f14', font:{family:"'Noto Sans TC'",size:13}, padding:15 } },
+                tooltip:{ callbacks:{ label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString() } } }
+        }
+    });
+    incomeLineChart = new Chart(document.getElementById('incomeLineChart').getContext('2d'), {
+        type:'line',
+        data:{ labels:months, datasets:[{ label:'收入', data:Array(12).fill(0), borderColor:'rgba(45,107,63,1)', backgroundColor:'rgba(45,107,63,0.08)', borderWidth:2.5, tension:0.4, fill:true, pointRadius:5, pointHoverRadius:7, pointBackgroundColor:'rgba(45,107,63,1)', pointBorderColor:'#f5f0e8', pointBorderWidth:2 }]},
+        options:{ responsive:true, maintainAspectRatio:true, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'$'+v.toLocaleString(), color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ color:'rgba(180,155,120,0.15)' } }, x:{ ticks:{ color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ display:false } } }, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>'收入: $'+ctx.parsed.y.toLocaleString() } } }, interaction:{ intersect:false, mode:'index' } }
+    });
+    expenseLineChart = new Chart(document.getElementById('expenseLineChart').getContext('2d'), {
+        type:'line',
+        data:{ labels:months, datasets:[{ label:'支出', data:Array(12).fill(0), borderColor:'rgba(139,58,42,1)', backgroundColor:'rgba(139,58,42,0.08)', borderWidth:2.5, tension:0.4, fill:true, pointRadius:5, pointHoverRadius:7, pointBackgroundColor:'rgba(139,58,42,1)', pointBorderColor:'#f5f0e8', pointBorderWidth:2 }]},
+        options:{ responsive:true, maintainAspectRatio:true, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'$'+v.toLocaleString(), color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ color:'rgba(180,155,120,0.15)' } }, x:{ ticks:{ color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ display:false } } }, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>'支出: $'+ctx.parsed.y.toLocaleString() } } }, interaction:{ intersect:false, mode:'index' } }
+    });
+    categoryPieChart = new Chart(document.getElementById('categoryPieChart').getContext('2d'), {
+        type:'pie',
+        data:{ labels:[], datasets:[{ data:[], backgroundColor:['#b5813a','#2d6b3f','#8b3a2a','#3d5f8a','#7a5c3a','#5a8a6a','#8a5a2a','#6a6a4a'], borderWidth:2, borderColor:'#f5f0e8' }]},
+        options:{ responsive:true, maintainAspectRatio:true,
+            plugins:{ legend:{ position:'right', labels:{ color:'#2a1f14', font:{family:"'Noto Sans TC'",size:12}, padding:10 } },
+                tooltip:{ callbacks:{ label:ctx=>ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+Math.round(ctx.parsed/ctx.dataset.data.reduce((a,b)=>a+b,0)*100)+'%)' } } }
+        }
+    });
+}
+
+function updateCharts() {
+    const y = selectedYear;
+    const src = y ? records.filter(r=>new Date(r.date).getFullYear()==y) : records;
+    const mI = Array(12).fill(0), mE = Array(12).fill(0);
+    src.forEach(r=>{ const m=new Date(r.date).getMonth(); r.type==='income'?mI[m]+=r.amount:mE[m]+=r.amount; });
+    barChart.data.datasets[0].data=mI; barChart.data.datasets[1].data=mE; barChart.update();
+    incomeLineChart.data.datasets[0].data=mI; incomeLineChart.update();
+    expenseLineChart.data.datasets[0].data=mE; expenseLineChart.update();
+    const filtered = getFilteredRecords().filter(r=>r.type==='expense');
+    const catMap = {};
+    filtered.forEach(r=>{ const c=r.category||'未分類'; catMap[c]=(catMap[c]||0)+r.amount; });
+    const labels = Object.keys(catMap);
+    const data = labels.map(l=>catMap[l]);
+    categoryPieChart.data.labels=labels;
+    categoryPieChart.data.datasets[0].data=data;
+    categoryPieChart.update();
+}
+
+let creditBarChart, creditLineChart, creditPieChart;
+
+function initCreditCharts() {
+    const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    creditBarChart = new Chart(document.getElementById('creditBarChart').getContext('2d'), {
+        type:'bar',
+        data:{ labels:months, datasets:[{ label:'刷卡金額', data:Array(12).fill(0), backgroundColor:'rgba(61,95,138,0.7)', borderColor:'rgba(61,95,138,1)', borderWidth:1, borderRadius:6 }]},
+        options:{ responsive:true, maintainAspectRatio:true,
+            scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'$'+v.toLocaleString(), color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ color:'rgba(180,155,120,0.15)' } }, x:{ ticks:{ color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ display:false } } },
+            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>'刷卡: $'+ctx.parsed.y.toLocaleString() } } }
+        }
+    });
+    creditLineChart = new Chart(document.getElementById('creditLineChart').getContext('2d'), {
+        type:'line',
+        data:{ labels:months, datasets:[{ label:'刷卡金額', data:Array(12).fill(0), borderColor:'rgba(61,95,138,1)', backgroundColor:'rgba(61,95,138,0.08)', borderWidth:2.5, tension:0.4, fill:true, pointRadius:5, pointHoverRadius:7, pointBackgroundColor:'rgba(61,95,138,1)', pointBorderColor:'#f5f0e8', pointBorderWidth:2 }]},
+        options:{ responsive:true, maintainAspectRatio:true, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'$'+v.toLocaleString(), color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ color:'rgba(180,155,120,0.15)' } }, x:{ ticks:{ color:'#7a6a57', font:{family:"'Noto Sans TC'"} }, grid:{ display:false } } }, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>'刷卡: $'+ctx.parsed.y.toLocaleString() } } }, interaction:{ intersect:false, mode:'index' } }
+    });
+    creditPieChart = new Chart(document.getElementById('creditPieChart').getContext('2d'), {
+        type:'pie',
+        data:{ labels:[], datasets:[{ data:[], backgroundColor:['#3d5f8a','#b5813a','#2d6b3f','#8b3a2a','#7a5c3a','#5a8a6a','#6a4a8a','#6a6a4a'], borderWidth:2, borderColor:'#f5f0e8' }]},
+        options:{ responsive:true, maintainAspectRatio:true,
+            plugins:{ legend:{ position:'right', labels:{ color:'#2a1f14', font:{family:"'Noto Sans TC'",size:12}, padding:10 } },
+                tooltip:{ callbacks:{ label:ctx=>ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+Math.round(ctx.parsed/ctx.dataset.data.reduce((a,b)=>a+b,0)*100)+'%)' } } }
+        }
+    });
+}
+
+function updateCreditCharts() {
+    if (!creditBarChart) return;
+    const now = new Date();
+    const year = now.getFullYear();
+    const mC = Array(12).fill(0);
+    creditRecords.forEach(r => {
+        const d = new Date(r.date);
+        if (d.getFullYear() === year) mC[d.getMonth()] += r.amount;
+    });
+    creditBarChart.data.datasets[0].data = mC; creditBarChart.update();
+    creditLineChart.data.datasets[0].data = mC; creditLineChart.update();
+    const catMap = {};
+    creditRecords.forEach(r => { const c = r.category||'未分類'; catMap[c]=(catMap[c]||0)+r.amount; });
+    creditPieChart.data.labels = Object.keys(catMap);
+    creditPieChart.data.datasets[0].data = Object.values(catMap);
+    creditPieChart.update();
+}
 async function addCreditRecord() {
     const date = document.getElementById('creditDate').value;
     const item = document.getElementById('creditItem').value.trim();
     const amount = parseFloat(document.getElementById('creditAmount').value);
     const note = document.getElementById('creditNote').value.trim();
-
-    if (!date || !item || isNaN(amount)) {
-        await showAlert('請填寫日期、項目與金額', { icon: '✏️' });
-        return;
-    }
-
-    setRateStatus('creditRateStatus', 'loading', '正在抓取當下即時匯率...');
-    let rate = await fetchRate(currentTripCurrency());
-    if (rate == null) {
-        clearRateStatus('creditRateStatus');
-        const manualRate = await showRateInputModal(currentTripCurrency());
-        if (manualRate == null) return;
-        rate = manualRate;
-    } else {
-        lastFetchedRate = rate;
-        setRateStatus('creditRateStatus', 'ok', `已套用即時匯率：1 ${currentTripCurrency()} ≈ ${rate} TWD`);
-    }
-
-    updateTrip(currentTripId, t => {
-        t.creditRecords.unshift({ id: uid(), date, item, amount, rate, note });
-    });
-
-    document.getElementById('creditDate').value = '';
-    document.getElementById('creditItem').value = '';
-    document.getElementById('creditAmount').value = '';
-    document.getElementById('creditNote').value = '';
-
-    creditPageNum = 1;
-    renderDetail();
+    if (!date||!item||isNaN(amount)||amount<=0) { showToast('請填寫完整資料','error'); return; }
+    await addDoc(collection(db, "creditRecords"), { date, item, amount, category:'', note });
+    document.getElementById('creditItem').value='';
+    document.getElementById('creditAmount').value='';
+    document.getElementById('creditNote').value='';
+    showToast('信用卡消費已新增！', 'success');
 }
-
-async function deleteCreditRecord(id) {
-    const ok = await showConfirm('確定刪除這筆紀錄？', { icon: '🗑️', danger: true, confirmText: '刪除' });
-    if (!ok) return;
-    updateTrip(currentTripId, t => {
-        t.creditRecords = t.creditRecords.filter(r => r.id !== id);
-    });
-    renderDetail();
-}
-
-function renderCreditRecords() {
-    const trip = getTrip(currentTripId);
-    if (!trip) return;
-    const search = (document.getElementById('creditSearch').value || '').toLowerCase();
-
-    let records = trip.creditRecords.slice();
-    if (search) {
-        records = records.filter(r =>
-            r.item.toLowerCase().includes(search) || (r.note||'').toLowerCase().includes(search)
-        );
-    }
-
-    const listEl = document.getElementById('creditRecordsList');
-    const pagEl = document.getElementById('creditPagination');
-
-    if (records.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">尚無紀錄</div>';
-        pagEl.innerHTML = '';
-        return;
-    }
-
-    const totalPages = Math.ceil(records.length / RECORDS_PER_PAGE);
-    if (creditPageNum > totalPages) creditPageNum = totalPages;
-    if (creditPageNum < 1) creditPageNum = 1;
-
-    const startIdx = (creditPageNum - 1) * RECORDS_PER_PAGE;
-    const pageRecords = records.slice(startIdx, startIdx + RECORDS_PER_PAGE);
-
-    listEl.innerHTML = pageRecords.map(r => `
-        <div class="record-item">
-            <div class="record-date">${escapeHtml(r.date)}</div>
-            <div class="record-desc">${escapeHtml(r.item)}${r.note ? `<span class="record-note">${escapeHtml(r.note)}</span>` : ''}</div>
-            <div class="record-rate">匯率 1 ${escapeHtml(trip.currency)} = ${r.rate} TWD</div>
-            <div class="record-amounts">
-                <div class="record-amount-orig">${fmt(r.amount)} ${escapeHtml(trip.currency)}</div>
-                <div class="record-amount-twd">≈ NT$ ${fmt(r.amount * r.rate)}</div>
-            </div>
-            <button class="delete-btn" onclick="deleteCreditRecord('${r.id}')">刪除</button>
-        </div>
-    `).join('');
-
-    renderPagination(pagEl, totalPages, creditPageNum, p => { creditPageNum = p; renderCreditRecords(); });
-}
-
-// ===== Shared pagination renderer =====
-function renderPagination(el, totalPages, current, onChange) {
-    if (totalPages <= 1) { el.innerHTML = ''; return; }
-    let html = `<button class="page-btn" ${current===1?'disabled':''} data-p="${current-1}">‹ 上一頁</button>`;
-    for (let i=1; i<=totalPages; i++) {
-        html += `<button class="page-btn ${i===current?'active':''}" data-p="${i}">${i}</button>`;
-    }
-    html += `<button class="page-btn" ${current===totalPages?'disabled':''} data-p="${current+1}">下一頁 ›</button>`;
-    el.innerHTML = html;
-    el.querySelectorAll('.page-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const p = parseInt(btn.dataset.p);
-            if (!isNaN(p)) onChange(p);
-        });
-    });
-}
-
-// ===== Init =====
-renderTripList();
-initFirestore();
-
-// Expose functions to global scope (required for onclick in ES module)
-window.createTrip = createTrip;
-window.goToList = goToList;
-window.openTrip = openTrip;
-window.deleteTrip = deleteTrip;
-window.switchTab = switchTab;
-window.changeTripPage = changeTripPage;
-window.addCashBudget = addCashBudget;
-window.clearCashBudget = clearCashBudget;
-window.addCashRecord = addCashRecord;
-window.deleteCashRecord = deleteCashRecord;
-window.setCreditLimit = setCreditLimit;
-window.clearCreditLimit = clearCreditLimit;
 window.addCreditRecord = addCreditRecord;
-window.deleteCreditRecord = deleteCreditRecord;
-window.exportCSV = exportCSV;
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(r => console.log('SW registered'))
-            .catch(e => console.log('SW error', e));
-    });
+
+async function deleteCreditRecord(firestoreId) {
+    const ok = await showConfirm('確定要刪除這筆信用卡記錄？此操作無法復原。');
+    if (!ok) return;
+    await deleteDoc(doc(db, "creditRecords", firestoreId));
 }
+window.deleteCreditRecord = deleteCreditRecord;
+
+function updateCreditDisplay() {
+    const now = new Date();
+    const thisMonth = creditRecords.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); });
+    const used = thisMonth.reduce((s,r)=>s+r.amount,0);
+    const remaining = CREDIT_LIMIT - used;
+    const pct = Math.min(Math.round(used/CREDIT_LIMIT*100),100);
+    document.getElementById('creditUsed').textContent = '$'+used.toLocaleString();
+    document.getElementById('creditRemaining').textContent = '$'+Math.max(remaining,0).toLocaleString();
+    document.getElementById('creditProgressBar').style.width = pct+'%';
+    document.getElementById('creditProgressText').textContent = `$${used.toLocaleString()} / $${CREDIT_LIMIT.toLocaleString()}（${pct}%）`;
+    updateOverviewBanner();
+    const list = document.getElementById('creditRecordsList');
+    const pagination = document.getElementById('creditPagination');
+    const sorted = [...creditRecords].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if (!sorted.length) { list.innerHTML='<div class="empty-state">尚無信用卡消費記錄</div>'; if(pagination) pagination.innerHTML=''; updateCreditCharts(); return; }
+    const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+    creditPage = Math.min(creditPage, totalPages);
+    const paged = sorted.slice((creditPage-1)*PAGE_SIZE, creditPage*PAGE_SIZE);
+    let html = '';
+    let lastMonth = '';
+    paged.forEach(r => {
+        const d = new Date(r.date);
+        const monthKey = `${d.getFullYear()}年${d.getMonth()+1}月`;
+        if (monthKey !== lastMonth) {
+            const monthTotal = sorted.filter(x => { const xd=new Date(x.date); return xd.getFullYear()===d.getFullYear()&&xd.getMonth()===d.getMonth(); }).reduce((s,x)=>s+x.amount,0);
+            html += `<div class="month-separator"><span class="month-label">${monthKey}</span><span class="month-total">-$${monthTotal.toLocaleString()}</span></div>`;
+            lastMonth = monthKey;
+        }
+        html += `
+        <div class="credit-record-item" id="record-${r.firestoreId}">
+            <div class="record-date">${r.date}</div>
+            <div>
+                <div class="record-description">${r.item}</div>
+                ${r.note ? `<div class="record-note">📝 ${r.note}</div>` : ''}
+            </div>
+            <div class="record-category">${r.category||'未分類'}</div>
+            <div class="credit-amount">-$${r.amount.toLocaleString()}</div>
+            <div style="display:flex;gap:6px;">
+                <button class="edit-btn" onclick="openEditModal('${r.firestoreId}','creditRecords')">編輯</button>
+                <button class="delete-btn" onclick="deleteCreditRecord('${r.firestoreId}')">刪除</button>
+            </div>
+        </div>`;
+    });
+    list.innerHTML = html;
+    if(pagination) renderPagination('creditPagination', creditPage, totalPages, sorted.length, (p)=>{ creditPage=p; updateCreditDisplay(); });
+    updateCreditCharts();
+}
+
+// ═══════════════════════════════════════════
+//  儲蓄率
+// ═══════════════════════════════════════════
+function updateSavingsRate() {
+    const filtered = getFilteredRecords();
+    const income = filtered.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const expense = filtered.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    const rateEl = document.getElementById('savingsRateValue');
+    const fillEl = document.getElementById('savingsRateFill');
+    const subEl = document.getElementById('savingsRateSub');
+    if (!income) {
+        rateEl.textContent = '—';
+        fillEl.style.width = '0%';
+        subEl.textContent = '尚無收入記錄';
+        return;
+    }
+    const saved = income - expense;
+    const rate = Math.round(saved / income * 100);
+    rateEl.textContent = rate + '%';
+    rateEl.style.color = rate >= 20 ? 'var(--income-color)' : rate >= 0 ? '#d97706' : 'var(--expense-color)';
+    fillEl.style.width = Math.max(0, Math.min(rate, 100)) + '%';
+    fillEl.className = 'savings-rate-fill' + (rate < 0 ? ' low' : rate < 20 ? ' mid' : '');
+    subEl.textContent = rate >= 0
+        ? `本期儲蓄 $${saved.toLocaleString()}，${rate >= 20 ? '👏 表現優秀！' : '建議提高至 20%'}`
+        : `本期超支 $${Math.abs(saved).toLocaleString()}`;
+}
+
+// ═══════════════════════════════════════════
+//  月對月比較
+// ═══════════════════════════════════════════
+function updateMomComparison() {
+    const grid = document.getElementById('momGrid');
+    const y = parseInt(selectedYear);
+    const m = parseInt(selectedMonth);
+    if (!selectedMonth || !y) {
+        grid.innerHTML = '<div class="empty-state">選擇特定月份後顯示與上個月的比較</div>';
+        return;
+    }
+    // 本月 & 上個月
+    const prevM = m === 1 ? 12 : m - 1;
+    const prevY = m === 1 ? y - 1 : y;
+    const thisRecords = records.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===y && d.getMonth()+1===m; });
+    const prevRecords = records.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===prevY && d.getMonth()+1===prevM; });
+
+    const thisIncome  = thisRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const thisExpense = thisRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    const thisSaved   = thisIncome - thisExpense;
+    const prevIncome  = prevRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const prevExpense = prevRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    const prevSaved   = prevIncome - prevExpense;
+
+    const monthNames = ['','一','二','三','四','五','六','七','八','九','十','十一','十二'];
+    const thisLabel = monthNames[m]+'月';
+    const prevLabel = monthNames[prevM]+'月';
+
+    function momCard(label, thisVal, prevVal, isExpense) {
+        const diff = thisVal - prevVal;
+        const pct = prevVal ? Math.abs(Math.round(diff/prevVal*100)) : null;
+        // for expense: up is bad (red), down is good (green); for income/saving: opposite
+        const isUp = diff > 0;
+        const badUp = isExpense;
+        const cls = diff === 0 ? 'neutral' : (isUp === badUp ? 'up' : 'down');
+        const arrow = diff === 0 ? '─' : (isUp ? '▲' : '▼');
+        const changeText = diff === 0 ? '持平' : `${arrow} ${pct !== null ? pct+'%' : ''} ($${Math.abs(diff).toLocaleString()})`;
+        return `<div class="mom-card">
+            <div class="mom-card-label">${label}</div>
+            <div class="mom-card-months">
+                <div class="mom-month">${prevLabel}<span>$${prevVal.toLocaleString()}</span></div>
+                <div class="mom-arrow"><div class="mom-change ${cls}">${changeText}</div></div>
+                <div class="mom-month">${thisLabel}<span>$${thisVal.toLocaleString()}</span></div>
+            </div>
+        </div>`;
+    }
+    grid.innerHTML =
+        momCard('💵 收入', thisIncome, prevIncome, false) +
+        momCard('💸 支出', thisExpense, prevExpense, true) +
+        momCard('💰 結餘', thisSaved, prevSaved, false);
+}
+function openEditModal(firestoreId, colName) {
+    const allRecords = colName === 'records' ? records : creditRecords;
+    const r = allRecords.find(r => r.firestoreId === firestoreId);
+    if (!r) return;
+    document.getElementById('editId').value = firestoreId;
+    document.getElementById('editCollection').value = colName;
+    document.getElementById('editDate').value = r.date;
+    document.getElementById('editItem').value = r.item;
+    document.getElementById('editAmount').value = r.amount;
+    document.getElementById('editNote').value = r.note || '';
+    document.getElementById('editModal').style.display = 'flex';
+}
+async function saveEdit() {
+    const id = document.getElementById('editId').value;
+    const colName = document.getElementById('editCollection').value;
+    const date = document.getElementById('editDate').value;
+    const item = document.getElementById('editItem').value.trim();
+    const amount = parseFloat(document.getElementById('editAmount').value);
+    const note = document.getElementById('editNote').value.trim();
+    if (!date||!item||isNaN(amount)||amount<=0) { showToast('請填寫完整資料','error'); return; }
+    await updateDoc(doc(db, colName, id), { date, item, amount, note });
+    document.getElementById('editModal').style.display = 'none';
+    showToast('記錄已更新！', 'success');
+}
+function closeEditModal(e) {
+    if (!e || e.target === document.getElementById('editModal')) {
+        document.getElementById('editModal').style.display = 'none';
+    }
+}
+window.openEditModal = openEditModal;
+window.saveEdit = saveEdit;
+window.closeEditModal = closeEditModal;
+async function callClaude(prompt) {
+    const key = getApiKey();
+    if (!key) { showToast('請先設定 Claude API Key！','error'); return null; }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': key,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1500,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || '呼叫 Claude API 失敗');
+    }
+    const data = await res.json();
+    return data.content[0].text;
+}
+
+function showAiResult(elId, text) {
+    const el = document.getElementById(elId);
+    el.textContent = text;
+    el.classList.add('visible');
+}
+function showAiLoading(elId) {
+    const el = document.getElementById(elId);
+    el.innerHTML='<div class="ai-loading">⏳ AI 分析中，請稍候…</div>';
+    el.classList.add('visible');
+}
+
+async function aiClassifyAll() {
+    const expenses = records.filter(r=>r.type==='expense');
+    if (!expenses.length) { showToast('目前沒有支出記錄可分類','info'); return; }
+    showAiLoading('cashAiResult');
+    const items = expenses.map(r=>`${r.firestoreId}|${r.item}|${r.amount}`).join('\n');
+    const prompt = `以下是使用者的支出記錄（格式：id|項目|金額）：\n${items}\n\n請將每筆記錄分類為以下其中一個類別：飲食、交通、娛樂、購物、醫療、住宿、教育、其他。\n請只回傳 JSON 陣列，格式如下，不要有任何其他文字：\n[{"id":"xxx","category":"飲食"}]`;
+    try {
+        const result = await callClaude(prompt);
+        const jsonMatch = result.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error('AI 未回傳有效 JSON，請重試');
+        const parsed = JSON.parse(jsonMatch[0]);
+        for (const item of parsed) {
+            if (item.id && item.category) {
+                await updateDoc(doc(db, "records", item.id), { category: item.category });
+            }
+        }
+        const hint = document.getElementById('aiPieHint');
+        if (hint) hint.textContent = '✅ 分類完成，圖表已更新';
+        showAiResult('cashAiResult', '✅ 分類完成！已更新所有支出的類別，左側圓餅圖已自動刷新。');
+    } catch(e) {
+        showAiResult('cashAiResult', '❌ 分類失敗：'+e.message);
+    }
+}
+window.aiClassifyAll = aiClassifyAll;
+
+async function aiMonthlyAdvice() {
+    showAiLoading('cashAiResult');
+    const now = new Date();
+    const thisMonthRecords = records.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); });
+    if (!thisMonthRecords.length) { showAiResult('cashAiResult','本月尚無記錄，請先新增收支後再請 AI 分析。'); return; }
+    const income = thisMonthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+    const expense = thisMonthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+    const details = thisMonthRecords.map(r=>`[${r.type==='income'?'收入':'支出'}] ${r.date} ${r.item} ${r.category?'('+r.category+')':''} $${r.amount}`).join('\n');
+    const prompt = `以下是使用者本月（${now.getFullYear()}年${now.getMonth()+1}月）的財務記錄：\n\n${details}\n\n本月總收入：$${income.toLocaleString()}\n本月總支出：$${expense.toLocaleString()}\n淨收支：$${(income-expense).toLocaleString()}\n\n請用繁體中文提供：\n1. 本月理財總結（分析收支結構、各類別佔比）\n2. 具體可行的理財建議（3-5 點）\n3. 下個月的目標建議\n\n請用友善、具體的語氣，避免空泛的建議。`;
+    try {
+        const result = await callClaude(prompt);
+        showAiResult('cashAiResult', result);
+    } catch(e) {
+        showAiResult('cashAiResult', '❌ 分析失敗：'+e.message);
+    }
+}
+window.aiMonthlyAdvice = aiMonthlyAdvice;
+
+async function aiClassifyCredit() {
+    if (!creditRecords.length) { showToast('目前沒有信用卡記錄可分類','info'); return; }
+    showAiLoading('creditAiResult');
+    const items = creditRecords.map(r=>`${r.firestoreId}|${r.item}|${r.amount}`).join('\n');
+    const prompt = `以下是使用者的信用卡消費記錄（格式：id|項目|金額）：\n${items}\n\n請將每筆記錄分類為：飲食、交通、娛樂、購物、醫療、住宿、教育、其他。\n請只回傳 JSON 陣列，不要有任何其他文字：\n[{"id":"xxx","category":"飲食"}]`;
+    try {
+        const result = await callClaude(prompt);
+        const jsonMatch2 = result.match(/\[[\s\S]*\]/);
+        if (!jsonMatch2) throw new Error('AI 未回傳有效 JSON，請重試');
+        const parsed = JSON.parse(jsonMatch2[0]);
+        for (const item of parsed) {
+            if (item.id && item.category) {
+                await updateDoc(doc(db, "creditRecords", item.id), { category: item.category });
+            }
+        }
+        showAiResult('creditAiResult', '✅ 信用卡消費分類完成！');
+    } catch(e) {
+        showAiResult('creditAiResult', '❌ 分類失敗：'+e.message);
+    }
+}
+window.aiClassifyCredit = aiClassifyCredit;
+
+async function aiCreditAdvice() {
+    if (!creditRecords.length) { showAiResult('creditAiResult','尚無信用卡記錄'); return; }
+    showAiLoading('creditAiResult');
+    const now = new Date();
+    const thisMonth = creditRecords.filter(r=>{ const d=new Date(r.date); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); });
+    const used = thisMonth.reduce((s,r)=>s+r.amount,0);
+    const details = creditRecords.slice(-20).map(r=>`${r.date} ${r.item} ${r.category?'('+r.category+')':''} $${r.amount}`).join('\n');
+    const prompt = `使用者的信用卡額度為 $${CREDIT_LIMIT.toLocaleString()}，本月已刷 $${used.toLocaleString()}，剩餘 $${(CREDIT_LIMIT-used).toLocaleString()}。\n\n近期消費記錄：\n${details}\n\n請用繁體中文提供：\n1. 本月刷卡習慣分析\n2. 額度使用情況評估（是否偏高？）\n3. 具體的消費建議（3-4 點）\n\n語氣友善具體，避免空泛。`;
+    try {
+        const result = await callClaude(prompt);
+        showAiResult('creditAiResult', result);
+    } catch(e) {
+        showAiResult('creditAiResult', '❌ 分析失敗：'+e.message);
+    }
+}
+window.aiCreditAdvice = aiCreditAdvice;
+
+// ═══════════════════════════════════════════
+//  頁面初始化 + Firestore 即時監聽
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('incomeDate').value = today;
+    document.getElementById('expenseDate').value = today;
+    document.getElementById('creditDate').value = today;
+
+    const savedKey = getApiKey();
+    if (savedKey) document.getElementById('globalApiKey').value = savedKey;
+    updateKeyBadge();
+
+    const savedBank = getBankBalance();
+    if (savedBank) document.getElementById('bankBalanceInput').value = savedBank;
+
+    // 信用卡額度初始化
+    const savedLimit = localStorage.getItem('creditLimit');
+    if (savedLimit) document.getElementById('creditLimitInput').placeholder = `目前：$${parseInt(savedLimit).toLocaleString()}`;
+
+    // 預算與帳單初始化
+    const savedBudget = getBudget();
+    if (savedBudget) document.getElementById('budgetInput').placeholder = `目前：$${savedBudget.toLocaleString()}`;
+    updateBudgetDisplay();
+    updateBillingDisplay();
+    renderFixedList();
+
+    initYearOptions();
+    initCharts();
+    initCreditCharts();
+
+    // 現金記帳表單
+    document.getElementById('incomeForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const date = document.getElementById('incomeDate').value;
+        const item = document.getElementById('incomeItem').value;
+        const amount = parseFloat(document.getElementById('incomeAmount').value);
+        const note = document.getElementById('incomeNote').value.trim();
+        await addDoc(collection(db, "records"), { type:'income', date, item, amount, category:'收入', note });
+        this.reset();
+        document.getElementById('incomeDate').value = today;
+        showToast('收入已新增！', 'success');
+    });
+
+    document.getElementById('expenseForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const date = document.getElementById('expenseDate').value;
+        const item = document.getElementById('expenseItem').value;
+        const amount = parseFloat(document.getElementById('expenseAmount').value);
+        const note = document.getElementById('expenseNote').value.trim();
+        await addDoc(collection(db, "records"), { type:'expense', date, item, amount, category:'', note });
+        this.reset();
+        document.getElementById('expenseDate').value = today;
+        showToast('支出已新增！', 'success');
+    });
+
+
+    // Service Worker 註冊
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+
+    // ── Firestore 即時監聽：現金記錄 ──
+    onSnapshot(query(collection(db, "records"), orderBy("date", "desc")), (snapshot) => {
+        records = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+        updateDisplay();
+    });
+
+    // ── Firestore 即時監聽：信用卡記錄 ──
+    onSnapshot(query(collection(db, "creditRecords"), orderBy("date", "desc")), (snapshot) => {
+        creditRecords = snapshot.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+        updateCreditDisplay();
+    });
+});
 </script>
 </body>
 </html>
